@@ -9,7 +9,18 @@ export interface Photo {
   file: File;
   hash?: string;
   error?: string;
+  capture?: Capture;
 }
+export interface Capture {
+  status: string;
+  time: { key: string; label: string; display: string; fraction: string | null; offset: string | null } | null;
+  camera: string;
+  serial: string;
+  gps: { latitude: number; longitude: number; display: string } | null;
+}
+export interface Evidence { label: string; state: string; description: string; missing: number; values: { value: string; count: number }[] }
+export interface RelatedGroup { id: string; kind: string; items: Photo[]; contentKeys: string[]; distinctContents: number; captureLabel: string; evidence: Evidence[]; warnings: string[]; hasConflicts: boolean; timeOnly: boolean }
+export type Review = 'related' | 'different' | 'unsure';
 export interface Folder {
   id: string;
   name: string;
