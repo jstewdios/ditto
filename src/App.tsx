@@ -1,64 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDownToLine, ArrowRight, Check, ChevronLeft, ChevronRight, Copy, FileImage, Folder as FolderIcon, FolderOpen, FolderPlus, ImageOff, Info, LoaderCircle, LockKeyhole, Plus, ScanLine, ShieldCheck, X } from 'lucide-react';
+import { ArrowDownToLine, ArrowRight, Check, ChevronLeft, ChevronRight, Copy, FileImage, Folder as FolderIcon, FolderOpen, FolderPlus, Info, LoaderCircle, LockKeyhole, Plus, ScanLine, ShieldCheck, X } from 'lucide-react';
 import { createReport, formatBytes, groupDuplicates, readEntry } from './core.mjs';
-import { clearMetadataCache, makeFolder, photoDetails } from './photos';
-import type { Details } from './photos';
-import { acquirePreview } from './previews';
-import type { Folder, Group, Photo, Progress } from './types';
+import { clearMetadataCache, makeFolder } from './photos';
+import { CopyCard, PhotoPreview } from './PhotoCards';
+import { RelatedResults, RelatedDialog } from './RelatedView';
+import { createRelatedReport } from './relationships.mjs';
+import type { Capture, Folder, Group, Photo, Progress, RelatedGroup, Review } from './types';
 
 const number = (value: number) => value.toLocaleString();
-const date = (value: number) => value ? new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : 'Not available';
-
-function usePhotoUrl(photo: Photo) {
-  const [url, setUrl] = useState('');
-  useEffect(() => {
-    let active = true;
-    const preview = acquirePreview(photo);
-    preview.ready.then((next) => { if (active) setUrl(next); }).catch(() => {});
-    return () => { active = false; preview.release(); };
-  }, [photo]);
-  return url;
-}
-
-function PhotoPreview({ photo, large = false }: { photo: Photo; large?: boolean }) {
-  const url = usePhotoUrl(photo);
-  const [failed, setFailed] = useState(false);
-  useEffect(() => setFailed(false), [photo.id]);
-  return <div className={`photo-preview ${large ? 'photo-large' : ''}`}>
-    {failed ? <div className="preview-unavailable"><ImageOff size={26} /><span>Preview unavailable</span><small>{photo.name.split('.').pop()?.toUpperCase()} · still compared by file content</small></div>
-      : url ? <img src={url} alt={photo.name} loading="lazy" onError={() => setFailed(true)} /> : <FileImage size={30} />}
-  </div>;
-}
-
-function CopyCard({ photo, index }: { photo: Photo; index: number }) {
-  const [details, setDetails] = useState<Details>();
-  const [copied, setCopied] = useState(false);
-  useEffect(() => {
-    let active = true;
-    photoDetails(photo).then((result) => { if (active) setDetails(result); });
-    return () => { active = false; };
-  }, [photo]);
-  const size = details?.width && details.height ? [details.width, details.height] : undefined;
-  async function copyPath() {
-    try { await navigator.clipboard.writeText(photo.path); setCopied(true); }
-    catch { setCopied(false); }
-  }
-  return <article className="copy-card">
-    <div className="copy-number"><span>Copy {String(index + 1).padStart(2, '0')}</span><span><FolderIcon size={13} />{photo.folderName}</span></div>
-    <PhotoPreview photo={photo} large />
-    <div className="copy-info">
-      <h3>{photo.name}</h3>
-      <div className="path-box"><span className="tiny-label">LOCATION</span><p>{photo.path}</p><button className="text-button" onClick={copyPath}>{copied ? <Check size={14} /> : <Copy size={14} />}{copied ? 'Path copied' : 'Copy path'}</button></div>
-      <dl className="metadata">
-        <div><dt>File size</dt><dd>{formatBytes(photo.size)} <small>({number(photo.size)} bytes)</small></dd></div>
-        <div><dt>Dimensions</dt><dd>{size ? `${number(size[0])} × ${number(size[1])}` : details ? 'Not available' : 'Reading…'}</dd></div>
-        <div><dt>Date modified</dt><dd>{date(photo.lastModified)}</dd></div>
-        <div><dt>Date taken</dt><dd>{details ? details.taken || 'Not available' : 'Reading…'}</dd></div>
-        <div><dt>Camera</dt><dd>{details ? details.camera || 'Not available' : 'Reading…'}</dd></div>
-      </dl>
-    </div>
-  </article>;
-}
 
 function CompareDialog({ group, onClose }: { group: Group; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -87,8 +36,8 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
     <header className="dialog-header"><h2 id="help-title">A closer look at matching</h2><button className="icon-button" aria-label="Close matching information" onClick={() => ref.current?.close()}><X /></button></header>
     <div className="help-content">
       <h3>Same file, wherever it lives</h3><p>Ditto reads complete files and compares their sizes and SHA-256 fingerprints. Renamed copies match. Different photos with the same name do not.</p>
-      <h3>This first version finds exact copies</h3><p>Resized, cropped, edited, or re-encoded photos are not grouped. Changing a photo’s embedded metadata also changes its fingerprint.</p>
-      <h3>Your folders stay yours</h3><p>Photo contents, paths, and metadata are processed in this browser. Ditto has no photo uploads, analytics, or file-changing controls. Closing or reloading the page clears the session. A report is saved only when you export it.</p>
+      <h3>Exact copies and possible relationships</h3><p>Exact copies have identical full file contents. The separate Possibly related view groups different file contents with the same recorded capture second. That can bring edits together when capture metadata survives, but it can also bring separate burst shots together.</p><h3>Evidence you can inspect</h3><p>Each candidate group shows fractional seconds, camera model, serial number, and GPS coordinates when recorded. Conflicts and missing values stay visible. No file is labeled the original, and these groups never count as extra copies or recoverable space. Missing time-zone offsets are not guessed; files with and without offsets are assessed separately.</p><h3>Study 01: versions</h3><p>Compare a group and mark whether it looks related, contains different photographs, or leaves you unsure. Assessments stay in this session and can be exported with the evidence. <a href="/study-01.zip" download>Download the synthetic study folders</a> to try edits, burst shots, conflicting cameras, and missing metadata.</p>
+      <h3>Your folders stay yours</h3><p>Photo contents, paths, and metadata are processed in this browser. Ditto has no photo uploads, analytics, or file-changing controls. Closing or reloading the page clears the session. A report, including study assessments, is saved only when you export it.</p>
       <h3>Choose separate folders</h3><p>Include subfolders by selecting their parent once. Avoid adding a folder and its parent separately: browsers hide full disk paths, so Ditto cannot reliably recognize overlapping selections. Choose one folder at a time, or drop several together.</p>
       <h3>Photo formats</h3><p>JPEG, PNG, WebP, GIF, BMP, AVIF, HEIC, TIFF, and common camera RAW extensions are checked. Your browser may not preview every format. Missing previews or metadata do not prevent file comparison.</p>
       <p className="help-note">An extra copy may be an intentional backup. Ditto shows where copies are; it does not decide which one you should keep.</p>
@@ -99,6 +48,11 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
 export default function App() {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
+  const [relatedGroups, setRelatedGroups] = useState<RelatedGroup[]>([]);
+  const [coverage, setCoverage] = useState({ eligible: 0, missingTime: 0, unavailable: 0 });
+  const [view, setView] = useState<'exact' | 'related'>('exact');
+  const [reviews, setReviews] = useState<Record<string, Review>>({});
+  const [selectedRelated, setSelectedRelated] = useState<RelatedGroup>();
   const [result, setResult] = useState<{ checked: number; errors: { path: string; error: string }[] }>();
   const [progress, setProgress] = useState<Progress>();
   const [adding, setAdding] = useState(false);
@@ -117,7 +71,7 @@ export default function App() {
   const extraBytes = groups.reduce((sum, group) => sum + group.extraBytes, 0);
   useEffect(() => () => { worker.current?.terminate(); clearMetadataCache(); }, []);
 
-  function invalidate() { setGroups([]); setResult(undefined); setSelected(undefined); setPage(0); clearMetadataCache(); }
+  function invalidate() { setRelatedGroups([]); setCoverage({ eligible: 0, missingTime: 0, unavailable: 0 }); setReviews({}); setSelectedRelated(undefined); setView('exact'); setGroups([]); setResult(undefined); setSelected(undefined); setPage(0); clearMetadataCache(); }
 
   async function addSelections(selections: { name: string; entries: { file: File; path: string }[] }[]) {
     setAdding(true); setNotice('');
@@ -181,15 +135,19 @@ export default function App() {
       const next = new Worker(new URL('./scan.worker.ts', import.meta.url), { type: 'module' });
       worker.current = next;
       next.onmessage = ({ data }) => {
+        if (worker.current !== next) return;
         if (data.type === 'progress') setProgress(data);
         if (data.type === 'done') {
-          const hashes = new Map<string, string>(data.records.map((record: { id: string; hash: string }) => [record.id, record.hash]));
-          const records = photos.filter((photo) => hashes.has(photo.id)).map((photo) => ({ ...photo, hash: hashes.get(photo.id) }));
+          const scans = new Map<string, { hash: string; capture: Capture }>(data.records.map((record: { id: string; hash: string; capture: Capture }) => [record.id, record]));
+          const records = photos.filter((photo) => scans.has(photo.id)).map((photo) => ({ ...photo, ...scans.get(photo.id)! }));
+          const recordsById = new Map(records.map((photo) => [photo.id, photo]));
+          setRelatedGroups(data.related.map((group: Omit<RelatedGroup, 'items'> & { items: string[] }) => ({ ...group, items: group.items.map((id) => recordsById.get(id)!) })));
+          setCoverage(data.coverage);
           setGroups(groupDuplicates(records)); setResult({ checked: records.length, errors: data.errors }); setProgress(undefined);
           next.terminate(); worker.current = null;
         }
       };
-      next.onerror = () => { setProgress(undefined); setNotice('The comparison stopped unexpectedly. Your files are unchanged. Try a smaller selection.'); next.terminate(); worker.current = null; };
+      next.onerror = () => { if (worker.current !== next) return; setProgress(undefined); setNotice('The comparison stopped unexpectedly. Your files are unchanged. Try a smaller selection.'); next.terminate(); worker.current = null; };
       next.postMessage({ photos });
     } catch { worker.current?.terminate(); worker.current = null; setProgress(undefined); setNotice('Comparison could not start in this browser. Try a recent version of Firefox, Chrome, Edge, or Safari.'); }
   }
@@ -197,8 +155,8 @@ export default function App() {
   function cancel() { worker.current?.terminate(); worker.current = null; setProgress(undefined); setNotice('Comparison stopped. Your folders are still selected; you can start again.'); }
   function clear() { setFolders([]); invalidate(); setNotice(''); }
   function exportReport() {
-    const url = URL.createObjectURL(new Blob([createReport(groups)], { type: 'text/csv;charset=utf-8;' }));
-    const link = document.createElement('a'); link.href = url; link.download = 'ditto-photo-copies.csv'; link.click();
+    const url = URL.createObjectURL(new Blob([view === 'exact' ? createReport(groups) : createRelatedReport(relatedGroups, reviews)], { type: 'text/csv;charset=utf-8;' }));
+    const link = document.createElement('a'); link.href = url; link.download = view === 'exact' ? 'ditto-photo-copies.csv' : 'ditto-possible-relationships.csv'; link.click();
     setTimeout(() => URL.revokeObjectURL(url), 10000);
   }
 
@@ -222,27 +180,33 @@ export default function App() {
       </aside>
 
       <main id="workspace" className="main-workspace">
-        <div className="workspace-heading"><div><span className="eyebrow">PHOTO WORKSPACE</span><h1>{result ? 'Comparison complete.' : 'Find your repeats.'}</h1><p>{result ? `${number(result.checked)} photos compared across ${number(folders.length)} ${folders.length === 1 ? 'selection' : 'selections'}.` : 'See which photos you have twice. And where they live.'}</p></div>{result && groups.length > 0 && <button className="secondary-button export-button" onClick={exportReport}><ArrowDownToLine size={17} />Export report</button>}</div>
+        <div className="workspace-heading"><div><span className="eyebrow">PHOTO WORKSPACE</span><h1>{result ? 'Comparison complete.' : 'Find your repeats.'}</h1><p>{result ? `${number(result.checked)} photos compared across ${number(folders.length)} ${folders.length === 1 ? 'selection' : 'selections'}.` : 'See which photos you have twice. And where they live.'}</p></div>{result && (view === 'exact' ? groups.length : relatedGroups.length) > 0 && <button className="secondary-button export-button" onClick={exportReport}><ArrowDownToLine size={17} />{view === 'exact' ? 'Export exact copies' : 'Export study notes'}</button>}</div>
         {notice && <div className="notice" role="status"><Info size={19} /><p>{notice}</p><button className="icon-button" aria-label="Dismiss notification" onClick={() => setNotice('')}><X size={16} /></button></div>}
         {adding ? <section className="scan-panel" aria-live="polite"><LoaderCircle className="spin" size={32} /><h2>Reading your folders…</h2><p>Collecting photo files, including subfolders.</p></section>
-          : progress ? <section className="scan-panel" aria-label="Comparison progress"><div className="scan-icon"><ScanLine size={31} /></div><span className="eyebrow">COMPARING LOCALLY</span><h2>Looking for the same photo.</h2><p>{number(progress.completed)} of {number(progress.total)} files checked</p><div className="progress-track"><progress aria-label="Photos compared" max={100} value={percent} /><span>{percent}%</span></div><p className="scan-path" title={progress.name}>{progress.name}</p><button className="secondary-button" onClick={cancel}>Stop comparison</button><span className="scan-footnote">You can keep using this page. Your files are never changed.</span></section>
+          : progress ? <section className="scan-panel" aria-label="Comparison progress"><div className="scan-icon"><ScanLine size={31} /></div><span className="eyebrow">COMPARING LOCALLY</span><h2>Comparing files and capture details.</h2><p>{number(progress.completed)} of {number(progress.total)} files checked</p><div className="progress-track"><progress aria-label="Photos compared" max={100} value={percent} /><span>{percent}%</span></div><p className="scan-path" title={progress.name}>{progress.name}</p><button className="secondary-button" onClick={cancel}>Stop comparison</button><span className="scan-footnote">You can keep using this page. Your files are never changed.</span></section>
             : result ? <>
-              <div className="result-summary"><div><span className="stat-number">{number(groups.length)}</span><span>repeated {groups.length === 1 ? 'photo' : 'photos'}</span></div><div><span className="stat-number">{number(extraCopies)}</span><span>extra {extraCopies === 1 ? 'copy' : 'copies'}</span></div><div><span className="stat-number stat-bytes">{formatBytes(extraBytes)}</span><span>in extra copies</span></div><span className="verified-label"><ShieldCheck size={16} />Exact matches only</span></div>
+              <div className="relationship-switch" role="group" aria-label="Relationship view">
+                <button aria-pressed={view === 'exact'} onClick={() => { setView('exact'); setPage(0); }}>Exact copies <span>{number(groups.length)}</span></button>
+                <button aria-pressed={view === 'related'} onClick={() => { setView('related'); setPage(0); }}>Possibly related <span>{number(relatedGroups.length)}</span></button>
+              </div>
               {result.errors.length > 0 && <details className="scan-errors"><summary>{number(result.errors.length)} {result.errors.length === 1 ? 'file could' : 'files could'} not be compared</summary><ul>{result.errors.map((error, index) => <li key={index}><span>{error.path}</span><strong>{error.error}</strong></li>)}</ul><p>These files are excluded from the results.</p></details>}
+              {view === 'related' ? <RelatedResults groups={relatedGroups} coverage={coverage} reviews={reviews} onSelect={setSelectedRelated} /> : <>
+              <div className="result-summary"><div><span className="stat-number">{number(groups.length)}</span><span>repeated {groups.length === 1 ? 'photo' : 'photos'}</span></div><div><span className="stat-number">{number(extraCopies)}</span><span>extra {extraCopies === 1 ? 'copy' : 'copies'}</span></div><div><span className="stat-number stat-bytes">{formatBytes(extraBytes)}</span><span>in extra copies</span></div><span className="verified-label"><ShieldCheck size={16} />Exact matches only</span></div>
               {groups.length ? <><div className="results-heading"><h2>Meet your repeats <span>{number(groups.length)}</span></h2><p>Largest extra copies first</p></div><div className="group-grid">{groups.slice(page * 24, (page + 1) * 24).map((group, index) => <button className="group-card" key={group.id} onClick={() => setSelected(group)} aria-label={`Compare ${group.items.length} copies of ${group.items[0].name}`}>
                 <div className="group-image"><PhotoPreview photo={group.items[0]} /><span className="copy-pill"><Copy size={13} />{number(group.items.length)} copies</span></div>
                 <div className="group-info"><div className="group-title"><span className="group-index">{String(page * 24 + index + 1).padStart(2, '0')}</span><h3>{group.items[0].name}</h3></div><p className="group-folders"><FolderIcon size={14} /><span>{[...new Set(group.items.map((item) => item.folderName))].join(', ')}</span></p><div className="group-bottom"><span>{formatBytes(group.extraBytes)} in extra copies</span><span className="compare-link">Compare<ArrowRight size={15} /></span></div></div>
               </button>)}</div>{groups.length > 24 && <div className="pagination"><span>{page * 24 + 1}–{Math.min((page + 1) * 24, groups.length)} of {number(groups.length)} groups</span><button className="secondary-button" disabled={!page} onClick={() => setPage(page - 1)}><ChevronLeft size={16} />Previous</button><button className="secondary-button" disabled={(page + 1) * 24 >= groups.length} onClick={() => setPage(page + 1)}>Next<ChevronRight size={16} /></button></div>}</>
                 : <div className="no-matches"><span className="no-matches-icon"><Check size={31} /></span><h2>{result.checked ? 'No exact copies found.' : 'No files could be compared.'}</h2><p>{result.checked ? 'Every successfully checked file has different content. Edited or resized versions may still be present.' : 'Check the file notices above, then try another folder.'}</p><button className="secondary-button" onClick={() => folderInput.current?.click()}><FolderPlus size={17} />Add another folder</button></div>}
-              <div className="results-footer"><p>{skipped ? `${number(skipped)} non-photo files left out. ` : ''}An extra copy might be a backup worth keeping.</p><button className="text-button" onClick={scan}><ScanLine size={16} />Compare again</button></div>
+              </>}
+              <div className="results-footer"><p>{skipped ? `${number(skipped)} non-photo files left out. ` : ''}{view === 'exact' ? 'An extra copy might be a backup worth keeping.' : 'Possible relationships do not imply duplicate content or recoverable space.'}</p><button className="text-button" onClick={scan}><ScanLine size={16} />Compare again</button></div>
             </> : <>
               <section className={`dropzone ${folders.length ? 'ready' : ''}`} aria-label="Add photo folders">
                 <div className="folder-art" aria-hidden="true"><div className="art-tile tile-back"><FileImage size={43} strokeWidth={1.1} /></div><div className="art-tile tile-front"><FolderOpen size={43} strokeWidth={1.2} /><span><Plus size={13} /></span></div></div>
                 <span className="eyebrow">{photos.length ? 'READY WHEN YOU ARE' : 'START WITH A COUPLE OF FOLDERS'}</span>
                 <h2>{photos.length ? `${number(photos.length)} photos. Let’s take a look.` : 'Same photo. Different places.'}</h2>
-                <p>{photos.length ? 'Compare the files you’ve selected to find identical copies.' : 'Drop your photo folders here, or choose them below.\nSubfolders come along, too.'}</p>
+                <p>{photos.length ? 'Find exact copies and explore possible versions using capture details.' : 'Drop your photo folders here, or choose them below.\nSubfolders come along, too.'}</p>
                 <div className="dropzone-actions">{photos.length ? <button className="primary-button" onClick={scan}><ScanLine size={18} />Compare photos<ArrowRight size={17} /></button> : <button className="primary-button" onClick={() => folderInput.current?.click()}><FolderPlus size={19} />Choose a folder<ArrowRight size={17} /></button>}<button className="text-button" onClick={() => fileInput.current?.click()}>or choose photo files</button></div>
-                <div className="format-hint">JPG, PNG, HEIC, RAW & more<span>·</span>Exact copies only</div>
+                <div className="format-hint">JPG, PNG, HEIC, RAW & more<span>·</span>Exact copies + possible relationships</div>
               </section>
               <div className="steps"><div><span>01</span><h3>Bring the folders</h3><p>Choose separate folders from your device or connected drives.</p></div><div><span>02</span><h3>Find the repeats</h3><p>Compare file contents, even when the names are different.</p></div><div><span>03</span><h3>See every copy</h3><p>Inspect locations and details. Export a list to come back to.</p></div></div>
             </>}
@@ -251,6 +215,7 @@ export default function App() {
     </div>
     {dragging && <div className="drop-overlay" aria-hidden="true"><FolderPlus size={42} /><strong>Drop folders to add them</strong><span>Everything stays on your device</span></div>}
     {selected && <CompareDialog key={selected.id} group={selected} onClose={() => setSelected(undefined)} />}
+    {selectedRelated && <RelatedDialog group={selectedRelated} review={reviews[selectedRelated.id]} onReview={(review) => setReviews((current) => ({ ...current, [selectedRelated.id]: review }))} onClose={() => setSelectedRelated(undefined)} />}
     {help && <HelpDialog onClose={() => setHelp(false)} />}
   </div>;
 }
