@@ -64,7 +64,7 @@ export function normalizeCapture(raw = {}, status = 'read') {
   return {
     status,
     time: parseCaptureTime(raw.DateTimeOriginal, raw.SubSecTimeOriginal, raw.OffsetTimeOriginal),
-    camera: model ? (model.toLowerCase().startsWith(make.toLowerCase()) ? model : [make, model].filter(Boolean).join(' ')) : '',
+    camera: model ? (model.toLowerCase().startsWith(make.toLowerCase()) ? model : [make, model].filter(Boolean).join(' ')) : make,
     serial: serial(raw.BodySerialNumber ?? raw.SerialNumber),
     gps: latitude === null || longitude === null ? null : { latitude, longitude, display: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}` },
   };
