@@ -1,6 +1,6 @@
 # Ditto
 
-Choose photo folders. Find exact copies, explore possible versions of the same photograph, and inspect the evidence connecting them.
+Choose photo folders. Find exact copies, explore possible versions of the same photograph, and reconnect recorded bursts.
 
 Ditto is a small, browser-based inspection tool. It compares local files without uploading, moving, editing, or deleting them. There are no accounts, analytics, AI calls, or server-side photo processing in the application.
 
@@ -25,8 +25,9 @@ The Vite build produces `dist/`. Import this repository into Vercel with the Vit
 
 1. Choose folders one at a time, or drop several folders together. Subfolders are included. Individual photo files can also be selected.
 2. Compare photos. Progress is shown, and comparison can be stopped without losing the selected folders.
-3. Switch between **Exact copies** and **Possibly related**. Open a group to inspect previews, locations, file details, and the evidence for that relationship.
+3. Switch between **Exact copies**, **Possibly related**, and **Same burst**. Open a group to inspect previews, locations, file details, and the evidence for that relationship.
 4. Export exact-copy results, or mark candidate groups **Looks related**, **Different photographs**, or **Not sure** and export study notes. Assessments stay in the current session; they do not change any file or automatic match.
+5. In **Same burst**, inspect each file's Apple burst ID and export burst notes for all checked files, including files where no ID was found. This helps compare which originals/exports retain identifiers.
 
 Exact-copy groups list the most bytes in extra copies first. An extra copy may be an intentional backup; the byte count is information, not a deletion recommendation. Possible relationships never contribute to these byte counts or imply redundant files.
 
@@ -41,6 +42,8 @@ The **Possibly related** view is Study 01: different file contents sharing a val
 Explicit time-zone offsets are normalized to UTC; offset-free camera times are grouped separately. Fractional differences stay visible as potential burst shots. Camera models are not unique device identities. GPS comparison uses both coordinates, rounded to six decimal places, with no distance tolerance. Metadata can be copied or edited, so even fully agreeing metadata is not proof of a shared source.
 
 Exact copies count once when assessing evidence for related groups. Related groups require at least two different file contents, and are formed directly by capture-time buckets without transitive merging. Details and limits are in [Study 01 — Versions](docs/studies/01-versions.md).
+
+The **Same burst** view is [Study 02 — Explicit bursts](docs/studies/02-explicit-bursts.md). Files sharing a valid Apple MakerNote `BurstUUID` form a group when at least two different file contents are present, regardless of capture timestamps. The ID connects a recorded sequence; it does not distinguish original frames from their edits or backups. Camera conflicts remain visible. Sequence numbers, Live Photo IDs, and nearby times are never used as burst IDs. Other maker-note formats are unsupported, and real export survival has not yet been tested. No burst group contributes to extra-copy counts or byte totals.
 
 ## Local files and limits
 
@@ -60,6 +63,7 @@ One React + TypeScript application, built with Vite. No Neversong application co
 - `src/core.mjs`: streaming hashes, duplicate grouping, directory traversal, CSV export.
 - `src/scan.worker.ts`: comparison orchestration, capture extraction, grouping, and progress reporting.
 - `src/capture.mjs`, `src/relationships.mjs`: bounded EXIF extraction, normalization, evidence, coverage, and study exports.
+- `src/bursts.mjs`, `src/BurstView.tsx`: bounded Apple burst ID decoding, independent burst groups, per-file coverage, comparison, and CSV export.
 - `src/photos.ts`, `src/dimensions.mjs`: selection identity and read-only metadata.
 - `src/previews.ts`: shared, bounded previews.
 - `src/App.tsx`, `src/PhotoCards.tsx`, `src/RelatedView.tsx`: folder selection, exact-copy and candidate comparisons, evidence, and session assessments.
@@ -83,3 +87,5 @@ That evidence should determine the next slice. Study 01 now explores metadata-ba
 - [Lucide](https://lucide.dev/) — interface icons (ISC).
 
 All assets are bundled locally. The app loads no remote fonts or stock photos. The optional [synthetic study pack](public/study-01.zip) contains 11 technical test patterns with controlled metadata; it contains no user photos. Extract the archive and select its parent folder once. Its README lists expected results. `scripts/generate-study.py` rebuilds the committed fixture JSON and ZIP using Pillow; regular tests and builds need no Python dependency.
+
+Study 02 includes a separate [synthetic burst pack](public/study-02.zip): 12 files, 2 burst ID groups, and 1 exact-copy group. It covers second boundaries, preserved/stripped exports, missing capture times, unrelated IDs, and malformed or unsupported notes. Rebuild it with `python scripts/generate-burst-study.py`. Its expected outcomes and the untested real-export observation matrix are documented in the study.

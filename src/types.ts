@@ -12,6 +12,7 @@ export interface Photo {
   capture?: Capture;
 }
 export interface Capture {
+  burst?: { status: string; uuid: string | null; source: string | null };
   status: string;
   time: { key: string; label: string; display: string; fraction: string | null; offset: string | null } | null;
   camera: string;
@@ -20,6 +21,8 @@ export interface Capture {
 }
 export interface Evidence { label: string; state: string; description: string; missing: number; values: { value: string; count: number }[] }
 export interface RelatedGroup { id: string; kind: string; items: Photo[]; contentKeys: string[]; distinctContents: number; captureLabel: string; evidence: Evidence[]; warnings: string[]; hasConflicts: boolean; timeOnly: boolean }
+export interface BurstGroup { id: string; kind: string; uuid: string; items: Photo[]; contentKeys: string[]; distinctContents: number; conflicts: string[] }
+export interface BurstCoverage { identified: number; absent: number; unsupported: number; invalid: number; unavailable: number }
 export type Review = 'related' | 'different' | 'unsure';
 export interface Folder {
   id: string;

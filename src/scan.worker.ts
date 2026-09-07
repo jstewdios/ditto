@@ -1,6 +1,7 @@
 import { hashFile } from './core.mjs';
 import { readCapture } from './capture.mjs';
 import { groupRelated, relationshipCoverage } from './relationships.mjs';
+import { groupBursts, burstCoverage } from './bursts.mjs';
 import type { Photo } from './types';
 
 self.onmessage = async ({ data }: MessageEvent<{ photos: Photo[] }>) => {
@@ -34,5 +35,6 @@ self.onmessage = async ({ data }: MessageEvent<{ photos: Photo[] }>) => {
     report(completed === photos.length);
   }
   const related = groupRelated(records).map((group) => ({ ...group, items: group.items.map((item: { id: string }) => item.id) }));
-  self.postMessage({ type: 'done', records, errors, related, coverage: relationshipCoverage(records) });
+  const bursts = groupBursts(records).map((group) => ({ ...group, items: group.items.map((item: { id: string }) => item.id) }));
+  self.postMessage({ type: 'done', records, errors, related, coverage: relationshipCoverage(records), bursts, burstCoverage: burstCoverage(records) });
 };
