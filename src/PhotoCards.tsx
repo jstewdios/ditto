@@ -3,6 +3,7 @@ import { Check, Copy, FileImage, Folder as FolderIcon, ImageOff } from 'lucide-r
 import { formatBytes } from './core.mjs';
 import { photoDetails } from './photos';
 import type { Details } from './photos';
+import { burstStatusLabels } from './bursts.mjs';
 import { acquirePreview } from './previews';
 import type { Photo } from './types';
 const number = (value: number) => value.toLocaleString();
@@ -56,6 +57,7 @@ export function CopyCard({ photo, index, related = false, contentLabel }: { phot
         <div><dt>Date taken</dt><dd>{related ? photo.capture?.time?.display || 'Not recorded' : details ? details.taken || 'Not available' : 'Reading…'}</dd></div>
         <div><dt>Camera</dt><dd>{related ? photo.capture?.camera || 'Not recorded' : details ? details.camera || 'Not available' : 'Reading…'}</dd></div>
       {related && <><div><dt>Camera serial</dt><dd>{photo.capture?.serial || 'Not recorded'}</dd></div><div><dt>GPS</dt><dd>{photo.capture?.gps?.display || 'Not recorded'}</dd></div></>}
+      {related && <div><dt>Apple burst ID</dt><dd>{photo.capture?.burst?.uuid || burstStatusLabels[photo.capture?.burst?.status as keyof typeof burstStatusLabels] || 'Not checked'}</dd></div>}
       </dl>
     </div>
   </article>;
