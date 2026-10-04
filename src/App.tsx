@@ -229,7 +229,7 @@ export default function App() {
               <section className={`dropzone ${folders.length ? 'ready' : ''}`} aria-label="Add photo folders">
                 <div className="folder-art" aria-hidden="true"><div className="art-tile tile-back"><FileImage size={43} strokeWidth={1.1} /></div><div className="art-tile tile-front"><FolderOpen size={43} strokeWidth={1.2} /><span><Plus size={13} /></span></div></div>
                 <span className="eyebrow">{photos.length ? 'READY WHEN YOU ARE' : 'ARCHIVE AND INCOMING'}</span>
-                <h2>{photos.length ? `${number(photos.length)} photos. See what is already archived.` : 'Is this already over there?'}</h2>
+                <h2>{photos.length ? `${number(photos.length)} photos. See what is already archived.` : 'Archive here. Incoming there.'}</h2>
                 <p>{photos.length ? 'Archive is the place you trust. Incoming is the folder you want to check.' : 'Choose the Archive folder you trust and the Incoming folder you want to check.\nSubfolders come along, too.'}</p>
                 <div className="dropzone-actions">{photos.length ? <button className="primary-button" onClick={scan}><ScanLine size={18} />Compare photos<ArrowRight size={17} /></button> : <button className="primary-button" onClick={() => folderInput.current?.click()}><FolderPlus size={19} />Choose a folder<ArrowRight size={17} /></button>}<button className="text-button" onClick={() => fileInput.current?.click()}>or choose photo files</button></div>
                 <div className="format-hint">JPG, PNG, HEIC, RAW & more<span>·</span>Already archived · Versions · Bursts</div>
