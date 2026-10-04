@@ -1,6 +1,6 @@
 # Ditto
 
-Choose photo folders. Find exact copies, explore possible versions of the same photograph, and reconnect recorded bursts.
+Choose an Archive folder and an Incoming folder. See which Incoming files are already in the Archive, byte for byte. Exact copies, possible versions, and recorded bursts stay available.
 
 Ditto is a small, browser-based inspection tool. It compares local files without uploading, moving, editing, or deleting them. There are no accounts, analytics, AI calls, or server-side photo processing in the application.
 
@@ -23,17 +23,19 @@ The Vite build produces `dist/`. Import this repository into Vercel with the Vit
 
 ## First experience
 
-1. Choose folders one at a time, or drop several folders together. Subfolders are included. Individual photo files can also be selected.
+1. Choose folders one at a time, or drop several folders together. Subfolders are included. Individual photo files can also be selected. The first folder starts as **Archive**; each folder added after that starts as **Incoming**. Switch either role without comparing again.
 2. Compare photos. Progress is shown, and comparison can be stopped without losing the selected folders.
-3. Switch between **Exact copies**, **Possibly related**, and **Same burst**. Open a group to inspect previews, locations, file details, and the evidence for that relationship.
-4. Export exact-copy results, or mark candidate groups **Looks related**, **Different photographs**, or **Not sure** and export study notes. Assessments stay in the current session; they do not change any file or automatic match.
-5. In **Same burst**, inspect each file's Apple burst ID and export burst notes for all checked files, including files where no ID was found. This helps compare which originals/exports retain identifiers.
+3. Read **Already archived**. It shows how many Incoming files match the Archive byte for byte, how much Incoming space those copies use, where the Archive files are, and how many Incoming files have no exact Archive copy.
+4. **Exact copies**, **Possibly related**, and **Same burst** remain available. Open a group to inspect previews, locations, file details, and the evidence for that relationship. Mark candidate groups **Looks related**, **Different photographs**, or **Not sure** and export study notes. Assessments stay in the current session; they do not change any file or automatic match.
+5. Export the archive check for every checked Incoming file. In **Same burst**, export burst notes for all checked files, including files where no ID was found. Reports stay where you save them. Nothing is deleted or moved.
 
 Exact-copy groups list the most bytes in extra copies first. An extra copy may be an intentional backup; the byte count is information, not a deletion recommendation. Possible relationships never contribute to these byte counts or imply redundant files.
 
 ## What a match means
 
 Matching uses the full original file size and a SHA-256 fingerprint of every byte. Renaming a photo does not change its match. Different file modification times do not change its match. Two different photos with the same name or size are not grouped.
+
+The **Already archived** view is [Study 03 — Archive vs Incoming](docs/studies/03-archive-vs-incoming.md). Archive is the collection you trust. Incoming is the collection you want to evaluate. An Incoming file is already archived only when a checked Archive file has the same size and SHA-256. The duplicated-byte total is the size of those Incoming files, not the Exact copies extra-byte total, and not a suggestion to remove them. Files with no exact Archive copy appear unique to Incoming; they may still match each other. If no Archive file could be checked, Incoming files are not labeled unique. Possibly related and burst evidence stays in those views and is never added to the archived count. Changing a folder's role reuses the completed comparison.
 
 The **Exact copies** view finds identical file content. Crops, resized versions, recompression, other edits, and embedded metadata changes do not match here. The fingerprint remains available in each exact comparison.
 
@@ -60,6 +62,7 @@ The **Same burst** view is [Study 02 — Explicit bursts](docs/studies/02-explic
 
 One React + TypeScript application, built with Vite. No Neversong application code was copied. The shared lessons are background work, clear progress, bounded reads, and careful local-file handling.
 
+- `src/archive.mjs`, `src/ArchiveView.tsx`: Archive versus Incoming roles, exact-copy summary, counterpart paths, and the read-only archive-check export.
 - `src/core.mjs`: streaming hashes, duplicate grouping, directory traversal, CSV export.
 - `src/scan.worker.ts`: comparison orchestration, capture extraction, grouping, and progress reporting.
 - `src/capture.mjs`, `src/relationships.mjs`: bounded EXIF extraction, normalization, evidence, coverage, and study exports.
@@ -68,7 +71,7 @@ One React + TypeScript application, built with Vite. No Neversong application co
 - `src/previews.ts`: shared, bounded previews.
 - `src/App.tsx`, `src/PhotoCards.tsx`, `src/RelatedView.tsx`: folder selection, exact-copy and candidate comparisons, evidence, and session assessments.
 
-`npm test` checks independent hash correctness, renamed and same-name counterexamples, chunk boundaries, read errors, nested directory batches, CSV escaping, and image header dimensions. The relationship tests also cover timezone handling, burst conflicts, missing values, GPS, exact-copy separation, exports, and actual encoded JPEG metadata. CI type-checks, builds, and runs the compiled worker against the synthetic study fixtures. Interactive cross-browser QA is still needed; build/test success is not a claim that it was performed.
+`npm test` checks independent hash correctness, renamed and same-name counterexamples, chunk boundaries, read errors, nested directory batches, CSV escaping, and image header dimensions. The relationship tests also cover timezone handling, burst conflicts, missing values, GPS, exact-copy separation, exports, and actual encoded JPEG metadata. The archive tests cover role separation, Incoming byte totals, counterpart paths, unchecked files, capture-time evidence staying out of the exact count, and the archive-check export. CI type-checks, builds, and runs the compiled worker against the synthetic study fixtures. Interactive cross-browser QA is still needed; build/test success is not a claim that it was performed.
 
 ## First study
 
@@ -76,7 +79,7 @@ The question is: **Can someone understand where repeated photos live without ado
 
 For the first feedback round, ask someone to compare two separate folders and inspect one group. Useful observations: Can they find a copy on disk using the displayed path? Do they trust why it was grouped? Do they expect edited/resized versions to appear? Does their next question concern cleanup, or finding a forgotten photo?
 
-That evidence should determine the next slice. Study 01 now explores metadata-based version candidates. Perceptual image similarity, cleanup actions, metadata editing, persistent catalogs, and AI search remain outside this study.
+That evidence should determine the next slice. Study 01 explores metadata-based version candidates. Study 03 asks whether someone can see what is already in an Archive without Ditto touching files. Perceptual image similarity, cleanup actions, metadata editing, persistent catalogs, and AI search remain outside this study.
 
 ## Dependencies
 
@@ -89,3 +92,5 @@ That evidence should determine the next slice. Study 01 now explores metadata-ba
 All assets are bundled locally. The app loads no remote fonts or stock photos. The optional [synthetic study pack](public/study-01.zip) contains 11 technical test patterns with controlled metadata; it contains no user photos. Extract the archive and select its parent folder once. Its README lists expected results. `scripts/generate-study.py` rebuilds the committed fixture JSON and ZIP using Pillow; regular tests and builds need no Python dependency.
 
 Study 02 includes a separate [synthetic burst pack](public/study-02.zip): 12 files, 2 burst ID groups, and 1 exact-copy group. It covers second boundaries, preserved/stripped exports, missing capture times, unrelated IDs, and malformed or unsupported notes. Rebuild it with `python scripts/generate-burst-study.py`. Its expected outcomes and the untested real-export observation matrix are documented in the study.
+
+Study 03 does not add a photo pack. Assign any two real folders as Archive and Incoming. The counting rules, the difference from Exact copies, and the untested real-folder questions are documented in the study.

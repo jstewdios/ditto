@@ -3,7 +3,7 @@ import { isPhoto } from './core.mjs';
 import { readDimensions } from './dimensions.mjs';
 import type { Folder, Photo } from './types';
 
-export async function makeFolder(name: string, entries: { file: File; path: string }[]): Promise<Folder> {
+export async function makeFolder(name: string, entries: { file: File; path: string }[]): Promise<Omit<Folder, 'role'>> {
   const id = crypto.randomUUID();
   const photos: Photo[] = [];
   for (const entry of entries) {
