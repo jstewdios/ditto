@@ -64,6 +64,23 @@ export function archiveCheck(records, roles = {}, relatedGroups = []) {
   };
 }
 
+// Roles apply only while Archive vs Incoming is on. Stored roles do not affect the default result.
+export function rolesForCheck(enabled, folders) {
+  if (!enabled) return {};
+  const roles = {};
+  for (const folder of folders) {
+    if (folder?.role === 'archive' || folder?.role === 'incoming') roles[folder.id] = folder.role;
+  }
+  return roles;
+}
+
+// Turning the workflow on opens its summary. Turning it off leaves Exact copies when that summary was open.
+/** @param {boolean} enabled @param {'archive' | 'exact' | 'related' | 'burst'} view @returns {'archive' | 'exact' | 'related' | 'burst'} */
+export function viewAfterArchiveMode(enabled, view) {
+  if (enabled) return 'archive';
+  return view === 'archive' ? 'exact' : view;
+}
+
 export function createArchiveReport(check) {
   const rows = [['Status', 'Incoming folder', 'Relative path', 'File name', 'Bytes', 'SHA-256', 'Archive counterpart folders', 'Archive counterpart paths']];
   const push = (record, status, archive) => rows.push([

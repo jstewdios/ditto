@@ -11,9 +11,9 @@ The practical task is a card dump, export, or staging folder sitting next to a c
 | Archive | The place the person trusts | The reference set for exact content |
 | Incoming | The folder, dump, or export being evaluated | Which files are counted in the answer |
 
-Every selected folder has one role. The first folder starts as Archive. Each folder added after that starts as Incoming. Either role can be switched without comparing again; the completed size and SHA-256 results are reused. Adding or removing a folder still requires a new comparison.
+Folders start with no role. The result after a comparison is Exact copies across every selected folder. Archive vs Incoming is off until someone turns it on. Turning it on shows the role controls and this summary. Assigning or changing a role reuses the completed size and SHA-256 results. Turning it off returns to Exact copies, again without a new comparison. Adding or removing a folder still requires a new comparison.
 
-Multiple folders may share a role. They form one Archive collection or one Incoming collection. Files keep the role of the folder they were selected from.
+Multiple folders may share a role once the workflow is on. They form one Archive collection or one Incoming collection. Files keep the role of the folder they were selected from. A folder with no role is in neither collection.
 
 ## What the answer counts
 
@@ -47,12 +47,18 @@ Closing or reloading the page clears the session. Exporting the report is the on
 
 ## Existing studies
 
-Exact copies, Possibly related, and Same burst remain available and keep their previous rules. Study 03 is the first result after a comparison. The other two studies are secondary paths for a different question: whether different bytes might still be versions or members of a recorded burst.
+Exact copies is the default result. Possibly related and Same burst remain available and keep their previous rules. Archive vs Incoming is optional. It asks a different question from those views: whether Incoming bytes are already in an Archive.
 
 Study 01 and Study 02 fixtures are not an Archive-versus-Incoming ground truth. They can still be opened and assigned roles, but their expected counts belong to those studies.
 
+## One real session
+
+One person tried the first version of this study. The synthetic Archive and Incoming folders behaved as specified, but the roles were confusing before any comparison, and the reason to use them was not obvious. Comparing two ordinary folders, Desktop and Downloads, made the tool’s usefulness clear: exact copies, and the folder and path of each one.
+
+The change from that session is the default above. Exact copies across the selected folders come first. Archive vs Incoming stays available as a specialized workflow, with the same counts and the same read-only export, after someone turns it on. This is one person’s qualitative feedback. It is not evidence of broader demand.
+
 ## Validation and next observation
 
-Automated tests cover cross-folder exact matches, Incoming byte totals, multiple Archive locations, size-and-hash disagreements, Incoming-only and Archive-only copies, unreadable and empty files, withholding uniqueness when Archive cannot be checked, keeping capture-time neighbors out of the exact count, and CSV escaping. They do not change exact-copy grouping. The comparison worker is unchanged; roles are applied to its completed fingerprints.
+Automated tests cover cross-folder exact matches, Incoming byte totals, multiple Archive locations, size-and-hash disagreements, Incoming-only and Archive-only copies, unreadable and empty files, withholding uniqueness when Archive cannot be checked, keeping capture-time neighbors out of the exact count, and CSV escaping. They also cover a comparison with no roles, which stays an exact-copy result, and turning the workflow on and off without changing those counts. They do not change exact-copy grouping. The comparison worker is unchanged; roles are applied to its completed fingerprints only while the workflow is on.
 
 No synthetic photo pack is added for this slice. The useful check is a real Archive folder and a real Incoming folder. Notice whether the role labels match the folders someone actually trusts, whether the Archive paths are enough to find the kept file, whether the Incoming byte total is understandable, and whether "unique" is being read as "safe to delete." Record those observations before adding trash, move, or similarity behavior.

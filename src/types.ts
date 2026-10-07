@@ -31,7 +31,7 @@ export interface Folder {
   photos: Photo[];
   skipped: number;
   signature: string;
-  role: CollectionRole;
+  role?: CollectionRole;
 }
 export interface ArchiveLocation { id: string; folderName: string; path: string; name: string; size: number; hash?: string }
 export interface ArchiveMatchGroup { id: string; bytes: number; incoming: ArchiveLocation[]; archive: ArchiveLocation[] }

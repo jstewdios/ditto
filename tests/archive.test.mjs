@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { groupDuplicates } from '../src/core.mjs';
-import { archiveCheck, createArchiveReport } from '../src/archive.mjs';
+import { archiveCheck, createArchiveReport, rolesForCheck, viewAfterArchiveMode } from '../src/archive.mjs';
 
 const file = (fields) => ({ folderName: fields.folderId, name: fields.path.split('/').pop(), error: undefined, ...fields });
 
@@ -108,4 +108,38 @@ test('archive report lists exact status, counterpart paths, and neutralized form
   assert.ok(csv.includes('"No exact copy in checked Archive"'));
   assert.equal(csv.includes('delete'), false);
   assert.equal(csv.includes('Trash'), false);
+});
+
+test('folders without roles stay out of the Archive answer while exact copies still cross folders', () => {
+  const desktop = file({ id: 'd', folderId: 'desktop', path: 'Desktop/photo.jpg', size: 10, hash: 'same' });
+  const downloads = file({ id: 'w', folderId: 'downloads', path: 'Downloads/photo.jpg', size: 10, hash: 'same' });
+  const stored = [{ id: 'desktop', role: 'archive' }, { id: 'downloads', role: 'incoming' }];
+  const check = archiveCheck([desktop, downloads], rolesForCheck(false, stored));
+  assert.deepEqual(rolesForCheck(false, stored), {});
+  assert.equal(check.alreadyCount, 0);
+  assert.equal(check.uniqueCount, 0);
+  assert.equal(check.duplicatedBytes, 0);
+  const groups = groupDuplicates([desktop, downloads]);
+  assert.equal(groups.length, 1);
+  assert.deepEqual(groups[0].items.map((item) => [item.folderId, item.path]), [['desktop', 'Desktop/photo.jpg'], ['downloads', 'Downloads/photo.jpg']]);
+});
+
+test('opting in reuses assigned roles, and opting out returns from the archive summary to exact copies', () => {
+  const folders = [{ id: 'keep', role: 'archive' }, { id: 'card', role: 'incoming' }, { id: 'loose' }];
+  assert.deepEqual(rolesForCheck(true, folders), { keep: 'archive', card: 'incoming' });
+  const records = [
+    file({ id: 'a', folderId: 'keep', path: 'Keep/a.jpg', size: 10, hash: 'same' }),
+    file({ id: 'i', folderId: 'card', path: 'Card/a.jpg', size: 10, hash: 'same' }),
+    file({ id: 'u', folderId: 'card', path: 'Card/new.jpg', size: 4, hash: 'new' }),
+  ];
+  const optedIn = archiveCheck(records, rolesForCheck(true, folders));
+  const direct = archiveCheck(records, { keep: 'archive', card: 'incoming' });
+  assert.equal(optedIn.alreadyCount, 1);
+  assert.equal(optedIn.alreadyCount, direct.alreadyCount);
+  assert.equal(optedIn.duplicatedBytes, direct.duplicatedBytes);
+  assert.equal(optedIn.uniqueCount, direct.uniqueCount);
+  assert.equal(viewAfterArchiveMode(true, 'exact'), 'archive');
+  assert.equal(viewAfterArchiveMode(false, 'archive'), 'exact');
+  assert.equal(viewAfterArchiveMode(false, 'related'), 'related');
+  assert.equal(viewAfterArchiveMode(false, 'burst'), 'burst');
 });

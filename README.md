@@ -1,6 +1,6 @@
 # Ditto
 
-Choose an Archive folder and an Incoming folder. See which Incoming files are already in the Archive, byte for byte. Exact copies, possible versions, and recorded bursts stay available.
+Choose photo folders. Find exact copies, explore possible versions of the same photograph, and reconnect recorded bursts. An optional Archive vs Incoming check is available after that.
 
 Ditto is a small, browser-based inspection tool. It compares local files without uploading, moving, editing, or deleting them. There are no accounts, analytics, AI calls, or server-side photo processing in the application.
 
@@ -23,11 +23,11 @@ The Vite build produces `dist/`. Import this repository into Vercel with the Vit
 
 ## First experience
 
-1. Choose folders one at a time, or drop several folders together. Subfolders are included. Individual photo files can also be selected. The first folder starts as **Archive**; each folder added after that starts as **Incoming**. Switch either role without comparing again.
+1. Choose folders one at a time, or drop several folders together. Subfolders are included. Individual photo files can also be selected. Folders do not start with an Archive or Incoming role.
 2. Compare photos. Progress is shown, and comparison can be stopped without losing the selected folders.
-3. Read **Already archived**. It shows how many Incoming files match the Archive byte for byte, how much Incoming space those copies use, where the Archive files are, and how many Incoming files have no exact Archive copy.
-4. **Exact copies**, **Possibly related**, and **Same burst** remain available. Open a group to inspect previews, locations, file details, and the evidence for that relationship. Mark candidate groups **Looks related**, **Different photographs**, or **Not sure** and export study notes. Assessments stay in the current session; they do not change any file or automatic match.
-5. Export the archive check for every checked Incoming file. In **Same burst**, export burst notes for all checked files, including files where no ID was found. Reports stay where you save them. Nothing is deleted or moved.
+3. Read **Exact copies**. Each repeated photo lists the folder and relative path of its copies. Open a group for previews and file details.
+4. **Possibly related** and **Same burst** stay available. Mark candidate groups **Looks related**, **Different photographs**, or **Not sure** and export study notes. Assessments stay in the current session; they do not change any file or automatic match.
+5. Optionally turn on **Archive vs Incoming**, assign those roles, and read which Incoming files are already in the Archive. Export that check if you want it. Turning the workflow off returns to exact copies without comparing again. In **Same burst**, export burst notes for all checked files, including files where no ID was found. Reports stay where you save them. Nothing is deleted or moved.
 
 Exact-copy groups list the most bytes in extra copies first. An extra copy may be an intentional backup; the byte count is information, not a deletion recommendation. Possible relationships never contribute to these byte counts or imply redundant files.
 
@@ -35,7 +35,7 @@ Exact-copy groups list the most bytes in extra copies first. An extra copy may b
 
 Matching uses the full original file size and a SHA-256 fingerprint of every byte. Renaming a photo does not change its match. Different file modification times do not change its match. Two different photos with the same name or size are not grouped.
 
-The **Already archived** view is [Study 03 — Archive vs Incoming](docs/studies/03-archive-vs-incoming.md). Archive is the collection you trust. Incoming is the collection you want to evaluate. An Incoming file is already archived only when a checked Archive file has the same size and SHA-256. The duplicated-byte total is the size of those Incoming files, not the Exact copies extra-byte total, and not a suggestion to remove them. Files with no exact Archive copy appear unique to Incoming; they may still match each other. If no Archive file could be checked, Incoming files are not labeled unique. Possibly related and burst evidence stays in those views and is never added to the archived count. Changing a folder's role reuses the completed comparison.
+The optional **Already archived** view is [Study 03 — Archive vs Incoming](docs/studies/03-archive-vs-incoming.md). It is not the default result. Turn it on to mark one collection Archive and another Incoming. An Incoming file is already archived only when a checked Archive file has the same size and SHA-256. The duplicated-byte total is the size of those Incoming files, not the Exact copies extra-byte total, and not a suggestion to remove them. Files with no exact Archive copy appear unique to Incoming; they may still match each other. If no Archive file could be checked, Incoming files are not labeled unique. Possibly related and burst evidence stays in those views and is never added to the archived count. Changing a folder's role, or turning the workflow off, reuses the completed comparison.
 
 The **Exact copies** view finds identical file content. Crops, resized versions, recompression, other edits, and embedded metadata changes do not match here. The fingerprint remains available in each exact comparison.
 
@@ -93,4 +93,4 @@ All assets are bundled locally. The app loads no remote fonts or stock photos. T
 
 Study 02 includes a separate [synthetic burst pack](public/study-02.zip): 12 files, 2 burst ID groups, and 1 exact-copy group. It covers second boundaries, preserved/stripped exports, missing capture times, unrelated IDs, and malformed or unsupported notes. Rebuild it with `python scripts/generate-burst-study.py`. Its expected outcomes and the untested real-export observation matrix are documented in the study.
 
-Study 03 does not add a photo pack. Assign any two real folders as Archive and Incoming. The counting rules, the difference from Exact copies, and the untested real-folder questions are documented in the study.
+Study 03 does not add a photo pack. Exact copies across ordinary folders is the default. Archive vs Incoming is optional after that. The counting rules, one recorded session, and the difference from Exact copies are documented in the study.
