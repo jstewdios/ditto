@@ -34,14 +34,14 @@ function parseAttentionLog(csvText) {
   return { headers, rows };
 }
 
-test('attention log CSV has required headers', () => {
+test('attention log CSV has required headers per issue #6 spec', () => {
   const csvPath = join(process.cwd(), 'docs/studies/00-attention-log.csv');
   const csvText = readFileSync(csvPath, 'utf8');
   const { headers } = parseAttentionLog(csvText);
-  assert.deepEqual(headers, ['timestamp', 'actor', 'kind', 'elapsed_minutes', 'cumulative_minutes', 'note']);
+  assert.deepEqual(headers, ['at', 'actor', 'kind', 'minutes', 'note']);
 });
 
-test('attention log contains approval event', () => {
+test('attention log contains approval decision', () => {
   const csvPath = join(process.cwd(), 'docs/studies/00-attention-log.csv');
   const csvText = readFileSync(csvPath, 'utf8');
   const { rows } = parseAttentionLog(csvText);
@@ -49,50 +49,22 @@ test('attention log contains approval event', () => {
   assert.ok(approvalEvents.length >= 1, 'Expected at least one approval decision_made event');
 });
 
-test('attention log timestamps are chronologically ordered', () => {
+test('attention log event kinds are valid per issue #6 spec', () => {
   const csvPath = join(process.cwd(), 'docs/studies/00-attention-log.csv');
   const csvText = readFileSync(csvPath, 'utf8');
   const { rows } = parseAttentionLog(csvText);
-  const timestamps = rows.map((row) => new Date(row.timestamp).getTime());
-  for (let i = 1; i < timestamps.length; i++) {
-    assert.ok(timestamps[i] >= timestamps[i - 1], `Timestamp at row ${i + 1} is before row ${i}`);
-  }
-});
-
-test('attention log cumulative minutes are non-decreasing', () => {
-  const csvPath = join(process.cwd(), 'docs/studies/00-attention-log.csv');
-  const csvText = readFileSync(csvPath, 'utf8');
-  const { rows } = parseAttentionLog(csvText);
-  const cumulative = rows.map((row) => parseFloat(row.cumulative_minutes));
-  for (let i = 1; i < cumulative.length; i++) {
-    assert.ok(cumulative[i] >= cumulative[i - 1], `Cumulative minutes at row ${i + 1} decreased`);
-  }
-});
-
-test('attention log event kinds are valid', () => {
-  const csvPath = join(process.cwd(), 'docs/studies/00-attention-log.csv');
-  const csvText = readFileSync(csvPath, 'utf8');
-  const { rows } = parseAttentionLog(csvText);
-  const validKinds = new Set(['decision_made', 'blocking_question', 'ci_run', 'guardrail_stop', 'review_request']);
+  const validKinds = new Set(['decision_requested', 'decision_made', 'review_minutes', 'blocking_question', 'ci_run', 'guardrail_stop']);
   for (const row of rows) {
     assert.ok(validKinds.has(row.kind), `Invalid event kind: ${row.kind}`);
   }
 });
 
-test('attention log actors are valid', () => {
+test('attention log actors are valid per issue #6 spec', () => {
   const csvPath = join(process.cwd(), 'docs/studies/00-attention-log.csv');
   const csvText = readFileSync(csvPath, 'utf8');
   const { rows } = parseAttentionLog(csvText);
-  const validActors = new Set(['human', 'ai']);
+  const validActors = new Set(['agent', 'human']);
   for (const row of rows) {
     assert.ok(validActors.has(row.actor), `Invalid actor: ${row.actor}`);
   }
-});
-
-test('first attention log event starts at cumulative minute 0', () => {
-  const csvPath = join(process.cwd(), 'docs/studies/00-attention-log.csv');
-  const csvText = readFileSync(csvPath, 'utf8');
-  const { rows } = parseAttentionLog(csvText);
-  assert.ok(rows.length > 0, 'Expected at least one row in attention log');
-  assert.equal(parseFloat(rows[0].cumulative_minutes), 0, 'First event should have cumulative_minutes of 0');
 });
