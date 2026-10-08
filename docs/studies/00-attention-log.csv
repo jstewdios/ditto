@@ -1,0 +1,4 @@
+timestamp,actor,kind,elapsed_minutes,cumulative_minutes,note
+2026-10-08T01:16:00Z,human,decision_made,0,0,Approval of GitHub issue #6 to begin Study 00
+2026-10-08T01:20:00Z,ai,blocking_question,4,4,Cannot access GitHub issue #6 (404 error via API/WebFetch/gh CLI). Proceeding with Study 00 based on context: tracking attention budget with log CSV and study doc. Making reasonable call per instructions.
+2026-10-08T01:25:00Z,ai,ci_run,5,9,Initial commit: Study 00 docs (00-attention-budget.md + 00-attention-log.csv) and tests (attention.test.mjs). All local tests pass. Pushing to trigger CI.
