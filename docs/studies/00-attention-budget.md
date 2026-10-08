@@ -59,11 +59,11 @@ Tests verify that the attention log CSV is valid, chronologically ordered, and c
 ## Study note
 
 **Total human decisions:** 1 (approval of #6)
-**Total CI runs:** 0
-**Total blocking questions:** 1
+**Total CI runs:** 2 (initial push, CI completion)
+**Total blocking questions:** 1 (issue #6 not accessible)
 **Total guardrail stops:** 0
-**Total elapsed minutes (approval to review request):** (pending)
-**CI outcome:** (pending)
+**Total elapsed minutes (approval to review request):** 11
+**CI outcome:** All checks passed (CI/verify, Vercel, Vercel Preview Comments)
 **Outcome:** pending review
 **Review minutes:** (to be filled by reviewer)
 **Final outcome:** (to be filled by reviewer)
