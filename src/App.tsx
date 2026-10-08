@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDownToLine, ArrowRight, Check, ChevronLeft, ChevronRight, Copy, FileImage, Folder as FolderIcon, FolderOpen, FolderPlus, Info, LoaderCircle, LockKeyhole, Plus, ScanLine, ShieldCheck, X } from 'lucide-react';
 import { createReport, formatBytes, groupDuplicates, readEntry } from './core.mjs';
+import { archiveCheck, createArchiveReport, rolesForCheck, viewAfterArchiveMode } from './archive.mjs';
 import { clearMetadataCache, makeFolder } from './photos';
 import { CopyCard, PhotoPreview } from './PhotoCards';
 import { RelatedResults, RelatedDialog } from './RelatedView';
 import { BurstResults, BurstDialog } from './BurstView';
+import { ArchiveResults } from './ArchiveView';
 import { createBurstReport } from './bursts.mjs';
 import { createRelatedReport } from './relationships.mjs';
-import type { BurstGroup, BurstCoverage, Capture, Folder, Group, Photo, Progress, RelatedGroup, Review } from './types';
+import type { ArchiveCheck, BurstGroup, BurstCoverage, Capture, CollectionRole, Folder, Group, Photo, Progress, RelatedGroup, Review } from './types';
 
 const number = (value: number) => value.toLocaleString();
 
@@ -38,10 +40,11 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
     <header className="dialog-header"><h2 id="help-title">A closer look at matching</h2><button className="icon-button" aria-label="Close matching information" onClick={() => ref.current?.close()}><X /></button></header>
     <div className="help-content">
       <h3>Same file, wherever it lives</h3><p>Ditto reads complete files and compares their sizes and SHA-256 fingerprints. Renamed copies match. Different photos with the same name do not.</p>
-      <h3>Exact copies and possible relationships</h3><p>Exact copies have identical full file contents. The separate Possibly related view groups different file contents with the same recorded capture second. That can bring edits together when capture metadata survives, but it can also bring separate burst shots together.</p><h3>Evidence you can inspect</h3><p>Each candidate group shows fractional seconds, camera model, serial number, and GPS coordinates when recorded. Conflicts and missing values stay visible. No file is labeled the original, and these groups never count as extra copies or recoverable space. Missing time-zone offsets are not guessed; files with and without offsets are assessed separately.</p><h3>Study 01: versions</h3><p>Compare a group and mark whether it looks related, contains different photographs, or leaves you unsure. Assessments stay in this session and can be exported with the evidence. <a href="/study-01.zip" download>Download the synthetic study folders</a> to try edits, burst shots, conflicting cameras, and missing metadata.</p>
+      <h3>Exact copies and possible relationships</h3><p>Exact copies have identical full file contents. The separate Possibly related view groups different file contents with the same recorded capture second. That can bring edits together when capture metadata survives, but it can also bring separate burst shots together.</p>
+      <h3>Study 03: Archive and Incoming</h3><p>This is optional, after you have seen exact copies. Turn it on to mark one folder as Archive and another as Incoming. Already archived counts only exact file content. It shows where those Archive copies live, how much space the Incoming copies use, and which Incoming files have no exact Archive copy. Turning it off returns to exact copies without comparing again. An Archive match is not a suggestion to delete or move anything.</p><h3>Evidence you can inspect</h3><p>Each candidate group shows fractional seconds, camera model, serial number, and GPS coordinates when recorded. Conflicts and missing values stay visible. No file is labeled the original, and these groups never count as extra copies or recoverable space. Missing time-zone offsets are not guessed; files with and without offsets are assessed separately.</p><h3>Study 01: versions</h3><p>Compare a group and mark whether it looks related, contains different photographs, or leaves you unsure. Assessments stay in this session and can be exported with the evidence. <a href="/study-01.zip" download>Download the synthetic study folders</a> to try edits, burst shots, conflicting cameras, and missing metadata.</p>
       <h3>Study 02: explicit bursts</h3><p>The Same burst view connects files with a shared Apple BurstUUID, including files with different or missing capture times. It does not use proximity in time, sequence numbers, or Live Photo identifiers. Exports and backups can share the ID, so file counts are not frame counts. Inspect metadata for all checked files, and export burst notes to compare which exports retained the ID. <a href="/study-02.zip" download>Download the synthetic burst study folders</a>.</p>
       <h3>Your folders stay yours</h3><p>Photo contents, paths, and metadata are processed in this browser. Ditto has no photo uploads, analytics, or file-changing controls. Closing or reloading the page clears the session. A report, including study assessments, is saved only when you export it.</p>
-      <h3>Choose separate folders</h3><p>Include subfolders by selecting their parent once. Avoid adding a folder and its parent separately: browsers hide full disk paths, so Ditto cannot reliably recognize overlapping selections. Choose one folder at a time, or drop several together.</p>
+      <h3>Choose separate folders</h3><p>Include subfolders by selecting their parent once. Folders are not labeled Archive or Incoming unless you turn on that workflow. Avoid adding a folder and its parent separately: browsers hide full disk paths, so Ditto cannot reliably recognize overlapping selections. Choose one folder at a time, or drop several together.</p>
       <h3>Photo formats</h3><p>JPEG, PNG, WebP, GIF, BMP, AVIF, HEIC, TIFF, and common camera RAW extensions are checked. Your browser may not preview every format. Missing previews or metadata do not prevent file comparison.</p>
       <p className="help-note">An extra copy may be an intentional backup. Ditto shows where copies are; it does not decide which one you should keep.</p>
     </div>
@@ -53,7 +56,8 @@ export default function App() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [relatedGroups, setRelatedGroups] = useState<RelatedGroup[]>([]);
   const [coverage, setCoverage] = useState({ eligible: 0, missingTime: 0, unavailable: 0 });
-  const [view, setView] = useState<'exact' | 'related' | 'burst'>('exact');
+  const [view, setView] = useState<'archive' | 'exact' | 'related' | 'burst'>('exact');
+  const [archiveMode, setArchiveMode] = useState(false);
   const [burstGroups, setBurstGroups] = useState<BurstGroup[]>([]);
   const [burstCoverage, setBurstCoverage] = useState<BurstCoverage>({ identified: 0, absent: 0, unsupported: 0, invalid: 0, unavailable: 0 });
   const [scannedRecords, setScannedRecords] = useState<Photo[]>([]);
@@ -76,6 +80,13 @@ export default function App() {
   const skipped = folders.reduce((sum, folder) => sum + folder.skipped, 0);
   const extraCopies = groups.reduce((sum, group) => sum + group.items.length - 1, 0);
   const extraBytes = groups.reduce((sum, group) => sum + group.extraBytes, 0);
+  const archiveFolders = folders.filter((folder) => folder.role === 'archive').length;
+  const incomingFolders = folders.filter((folder) => folder.role === 'incoming').length;
+  const archive: ArchiveCheck = useMemo(() => {
+    const checked = new Map(scannedRecords.map((photo) => [photo.id, photo]));
+    const records = photos.map((photo) => checked.get(photo.id) ?? { ...photo, error: photo.error || 'Could not read file' });
+    return archiveCheck(records, rolesForCheck(archiveMode, folders), relatedGroups);
+  }, [scannedRecords, photos, folders, relatedGroups, archiveMode]);
   useEffect(() => () => { worker.current?.terminate(); clearMetadataCache(); }, []);
 
   function invalidate() { setBurstGroups([]); setScannedRecords([]); setSelectedBurst(undefined); setBurstCoverage({ identified: 0, absent: 0, unsupported: 0, invalid: 0, unavailable: 0 }); setRelatedGroups([]); setCoverage({ eligible: 0, missingTime: 0, unavailable: 0 }); setReviews({}); setSelectedRelated(undefined); setView('exact'); setGroups([]); setResult(undefined); setSelected(undefined); setPage(0); clearMetadataCache(); }
@@ -161,11 +172,20 @@ export default function App() {
     } catch { worker.current?.terminate(); worker.current = null; setProgress(undefined); setNotice('Comparison could not start in this browser. Try a recent version of Firefox, Chrome, Edge, or Safari.'); }
   }
 
+  function setRole(id: string, role: CollectionRole) { setFolders((current) => current.map((folder) => folder.id === id ? { ...folder, role } : folder)); }
+  function toggleArchiveMode() {
+    const enabled = !archiveMode;
+    setArchiveMode(enabled);
+    setView(viewAfterArchiveMode(enabled, view));
+    setPage(0);
+  }
   function cancel() { worker.current?.terminate(); worker.current = null; setProgress(undefined); setNotice('Comparison stopped. Your folders are still selected; you can start again.'); }
   function clear() { setFolders([]); invalidate(); setNotice(''); }
   function exportReport() {
-    const url = URL.createObjectURL(new Blob([view === 'exact' ? createReport(groups) : view === 'burst' ? createBurstReport(scannedRecords) : createRelatedReport(relatedGroups, reviews)], { type: 'text/csv;charset=utf-8;' }));
-    const link = document.createElement('a'); link.href = url; link.download = view === 'exact' ? 'ditto-photo-copies.csv' : view === 'burst' ? 'ditto-burst-notes.csv' : 'ditto-possible-relationships.csv'; link.click();
+    const body = view === 'archive' ? createArchiveReport(archive) : view === 'exact' ? createReport(groups) : view === 'burst' ? createBurstReport(scannedRecords) : createRelatedReport(relatedGroups, reviews);
+    const filename = view === 'archive' ? 'ditto-archive-check.csv' : view === 'exact' ? 'ditto-photo-copies.csv' : view === 'burst' ? 'ditto-burst-notes.csv' : 'ditto-possible-relationships.csv';
+    const url = URL.createObjectURL(new Blob([body], { type: 'text/csv;charset=utf-8;' }));
+    const link = document.createElement('a'); link.href = url; link.download = filename; link.click();
     setTimeout(() => URL.revokeObjectURL(url), 10000);
   }
 
@@ -180,7 +200,8 @@ export default function App() {
       <aside className="sidebar" aria-label="Selected folders">
         <div className="sidebar-title"><h2>Your folders</h2><span className="count-badge">{number(folders.length)}</span></div>
         <button className="add-folder-button" disabled={busy} onClick={() => folderInput.current?.click()}><Plus size={17} />Add a folder</button>
-        {folders.length ? <ul className="folder-list">{folders.map((folder) => <li key={folder.id}><span className="folder-symbol"><FolderIcon size={21} /></span><div><strong title={folder.name}>{folder.name}</strong><span>{number(folder.photos.length)} photos{folder.skipped ? ` · ${number(folder.skipped)} other files` : ''}</span></div><button className="icon-button remove-folder" aria-label={`Remove ${folder.name}`} disabled={busy} onClick={() => { setFolders((current) => current.filter((item) => item.id !== folder.id)); invalidate(); setNotice(''); }}><X size={15} /></button></li>)}</ul>
+        {archiveMode && <p className="role-hint">Optional. Mark the folder you trust as Archive and the one you want to check as Incoming.</p>}
+        {folders.length ? <ul className="folder-list">{folders.map((folder) => <li key={folder.id}><span className="folder-symbol"><FolderIcon size={21} /></span><div><strong title={folder.name}>{folder.name}</strong><span>{number(folder.photos.length)} photos{folder.skipped ? ` · ${number(folder.skipped)} other files` : ''}</span>{archiveMode && <div className="role-switch" role="group" aria-label={`Collection role for ${folder.name}`}><button aria-pressed={folder.role === 'archive'} onClick={() => setRole(folder.id, 'archive')}>Archive</button><button aria-pressed={folder.role === 'incoming'} onClick={() => setRole(folder.id, 'incoming')}>Incoming</button></div>}</div><button className="icon-button remove-folder" aria-label={`Remove ${folder.name}`} disabled={busy} onClick={() => { setFolders((current) => current.filter((item) => item.id !== folder.id)); invalidate(); setNotice(''); }}><X size={15} /></button></li>)}</ul>
           : <div className="folder-placeholder"><FolderOpen size={25} strokeWidth={1.4} /><p>A camera roll. An old backup.<br />That folder on your desktop.</p><span>Add the places you want to compare.</span></div>}
         <div className="sidebar-bottom">
           {!!folders.length && <><div className="folder-total"><span>Photos selected</span><strong>{number(photos.length)}</strong></div><button className="text-button clear-button" disabled={busy} onClick={clear}>Clear workspace</button></>}
@@ -189,7 +210,7 @@ export default function App() {
       </aside>
 
       <main id="workspace" className="main-workspace">
-        <div className="workspace-heading"><div><span className="eyebrow">PHOTO WORKSPACE</span><h1>{result ? 'Comparison complete.' : 'Find your repeats.'}</h1><p>{result ? `${number(result.checked)} photos compared across ${number(folders.length)} ${folders.length === 1 ? 'selection' : 'selections'}.` : 'See which photos you have twice. And where they live.'}</p></div>{result && (view === 'exact' ? groups.length : view === 'burst' ? scannedRecords.length : relatedGroups.length) > 0 && <button className="secondary-button export-button" onClick={exportReport}><ArrowDownToLine size={17} />{view === 'exact' ? 'Export exact copies' : view === 'burst' ? 'Export burst notes' : 'Export study notes'}</button>}</div>
+        <div className="workspace-heading"><div><span className="eyebrow">PHOTO WORKSPACE</span><h1>{result ? (view === 'archive' ? 'Is this already over there?' : 'Comparison complete.') : 'Find your repeats.'}</h1><p>{result && view === 'archive' && archiveFolders > 0 && incomingFolders > 0 && archive.archiveChecked > 0 ? `${number(archive.alreadyCount)} Incoming ${archive.alreadyCount === 1 ? 'file is' : 'files are'} already in Archive. ${number(archive.uniqueCount)} appear unique to Incoming.` : result ? `${number(result.checked)} photos compared across ${number(folders.length)} ${folders.length === 1 ? 'selection' : 'selections'}.` : 'See which photos you have twice. And where they live.'}</p></div>{result && (view === 'archive' ? archive.archiveChecked > 0 && archive.incomingChecked > 0 : view === 'exact' ? groups.length > 0 : view === 'burst' ? scannedRecords.length > 0 : relatedGroups.length > 0) && <button className="secondary-button export-button" onClick={exportReport}><ArrowDownToLine size={17} />{view === 'archive' ? 'Export archive check' : view === 'exact' ? 'Export exact copies' : view === 'burst' ? 'Export burst notes' : 'Export study notes'}</button>}</div>
         {notice && <div className="notice" role="status"><Info size={19} /><p>{notice}</p><button className="icon-button" aria-label="Dismiss notification" onClick={() => setNotice('')}><X size={16} /></button></div>}
         {adding ? <section className="scan-panel" aria-live="polite"><LoaderCircle className="spin" size={32} /><h2>Reading your folders…</h2><p>Collecting photo files, including subfolders.</p></section>
           : progress ? <section className="scan-panel" aria-label="Comparison progress"><div className="scan-icon"><ScanLine size={31} /></div><span className="eyebrow">COMPARING LOCALLY</span><h2>Comparing files and capture details.</h2><p>{number(progress.completed)} of {number(progress.total)} files checked</p><div className="progress-track"><progress aria-label="Photos compared" max={100} value={percent} /><span>{percent}%</span></div><p className="scan-path" title={progress.name}>{progress.name}</p><button className="secondary-button" onClick={cancel}>Stop comparison</button><span className="scan-footnote">You can keep using this page. Your files are never changed.</span></section>
@@ -198,17 +219,19 @@ export default function App() {
                 <button aria-pressed={view === 'exact'} onClick={() => { setView('exact'); setPage(0); }}>Exact copies <span>{number(groups.length)}</span></button>
                 <button aria-pressed={view === 'related'} onClick={() => { setView('related'); setPage(0); }}>Possibly related <span>{number(relatedGroups.length)}</span></button>
                 <button aria-pressed={view === 'burst'} onClick={() => { setView('burst'); setPage(0); }}>Same burst <span>{number(burstGroups.length)}</span></button>
+                {archiveMode && <button aria-pressed={view === 'archive'} onClick={() => { setView('archive'); setPage(0); }}>Already archived {archiveFolders > 0 && incomingFolders > 0 && archive.archiveChecked > 0 && <span>{number(archive.alreadyCount)}</span>}</button>}
               </div>
+              <div className="archive-opt-in"><button aria-pressed={archiveMode} onClick={toggleArchiveMode}>Archive vs Incoming</button><p>{archiveMode ? 'Assign the roles on your folders. Turn this off to return to exact copies. The comparison stays.' : 'Optional, after you have seen where exact copies live.'}</p></div>
               {result.errors.length > 0 && <details className="scan-errors"><summary>{number(result.errors.length)} {result.errors.length === 1 ? 'file could' : 'files could'} not be compared</summary><ul>{result.errors.map((error, index) => <li key={index}><span>{error.path}</span><strong>{error.error}</strong></li>)}</ul><p>These files are excluded from the results.</p></details>}
-              {view === 'burst' ? <BurstResults groups={burstGroups} coverage={burstCoverage} records={scannedRecords} onSelect={setSelectedBurst} /> : view === 'related' ? <RelatedResults groups={relatedGroups} coverage={coverage} reviews={reviews} onSelect={setSelectedRelated} /> : <>
+              {view === 'archive' ? <ArchiveResults check={archive} archiveFolders={archiveFolders} incomingFolders={incomingFolders} onShowRelated={() => { setView('related'); setPage(0); }} /> : view === 'burst' ? <BurstResults groups={burstGroups} coverage={burstCoverage} records={scannedRecords} onSelect={setSelectedBurst} /> : view === 'related' ? <RelatedResults groups={relatedGroups} coverage={coverage} reviews={reviews} onSelect={setSelectedRelated} /> : <>
               <div className="result-summary"><div><span className="stat-number">{number(groups.length)}</span><span>repeated {groups.length === 1 ? 'photo' : 'photos'}</span></div><div><span className="stat-number">{number(extraCopies)}</span><span>extra {extraCopies === 1 ? 'copy' : 'copies'}</span></div><div><span className="stat-number stat-bytes">{formatBytes(extraBytes)}</span><span>in extra copies</span></div><span className="verified-label"><ShieldCheck size={16} />Exact matches only</span></div>
               {groups.length ? <><div className="results-heading"><h2>Meet your repeats <span>{number(groups.length)}</span></h2><p>Largest extra copies first</p></div><div className="group-grid">{groups.slice(page * 24, (page + 1) * 24).map((group, index) => <button className="group-card" key={group.id} onClick={() => setSelected(group)} aria-label={`Compare ${group.items.length} copies of ${group.items[0].name}`}>
                 <div className="group-image"><PhotoPreview photo={group.items[0]} /><span className="copy-pill"><Copy size={13} />{number(group.items.length)} copies</span></div>
-                <div className="group-info"><div className="group-title"><span className="group-index">{String(page * 24 + index + 1).padStart(2, '0')}</span><h3>{group.items[0].name}</h3></div><p className="group-folders"><FolderIcon size={14} /><span>{[...new Set(group.items.map((item) => item.folderName))].join(', ')}</span></p><div className="group-bottom"><span>{formatBytes(group.extraBytes)} in extra copies</span><span className="compare-link">Compare<ArrowRight size={15} /></span></div></div>
+                <div className="group-info"><div className="group-title"><span className="group-index">{String(page * 24 + index + 1).padStart(2, '0')}</span><h3>{group.items[0].name}</h3></div><ul className="copy-locations">{group.items.slice(0, 4).map((item) => <li key={item.id}><span>{item.folderName}</span><span>{item.path}</span></li>)}{group.items.length > 4 && <li>+ {number(group.items.length - 4)} more in the comparison</li>}</ul><div className="group-bottom"><span>{formatBytes(group.extraBytes)} in extra copies</span><span className="compare-link">Compare<ArrowRight size={15} /></span></div></div>
               </button>)}</div>{groups.length > 24 && <div className="pagination"><span>{page * 24 + 1}–{Math.min((page + 1) * 24, groups.length)} of {number(groups.length)} groups</span><button className="secondary-button" disabled={!page} onClick={() => setPage(page - 1)}><ChevronLeft size={16} />Previous</button><button className="secondary-button" disabled={(page + 1) * 24 >= groups.length} onClick={() => setPage(page + 1)}>Next<ChevronRight size={16} /></button></div>}</>
                 : <div className="no-matches"><span className="no-matches-icon"><Check size={31} /></span><h2>{result.checked ? 'No exact copies found.' : 'No files could be compared.'}</h2><p>{result.checked ? 'Every successfully checked file has different content. Edited or resized versions may still be present.' : 'Check the file notices above, then try another folder.'}</p><button className="secondary-button" onClick={() => folderInput.current?.click()}><FolderPlus size={17} />Add another folder</button></div>}
               </>}
-              <div className="results-footer"><p>{skipped ? `${number(skipped)} non-photo files left out. ` : ''}{view === 'exact' ? 'An extra copy might be a backup worth keeping.' : 'Possible relationships do not imply duplicate content or recoverable space.'}</p><button className="text-button" onClick={scan}><ScanLine size={16} />Compare again</button></div>
+              <div className="results-footer"><p>{skipped ? `${number(skipped)} non-photo files left out. ` : ''}{view === 'archive' ? 'An Archive match is exact file content, not a suggestion to delete or move the Incoming copy.' : view === 'exact' ? 'An extra copy might be a backup worth keeping.' : 'Possible relationships do not imply duplicate content or recoverable space.'}</p><button className="text-button" onClick={scan}><ScanLine size={16} />Compare again</button></div>
             </> : <>
               <section className={`dropzone ${folders.length ? 'ready' : ''}`} aria-label="Add photo folders">
                 <div className="folder-art" aria-hidden="true"><div className="art-tile tile-back"><FileImage size={43} strokeWidth={1.1} /></div><div className="art-tile tile-front"><FolderOpen size={43} strokeWidth={1.2} /><span><Plus size={13} /></span></div></div>

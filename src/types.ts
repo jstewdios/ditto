@@ -24,12 +24,28 @@ export interface RelatedGroup { id: string; kind: string; items: Photo[]; conten
 export interface BurstGroup { id: string; kind: string; uuid: string; items: Photo[]; contentKeys: string[]; distinctContents: number; conflicts: string[] }
 export interface BurstCoverage { identified: number; absent: number; unsupported: number; invalid: number; unavailable: number }
 export type Review = 'related' | 'different' | 'unsure';
+export type CollectionRole = 'archive' | 'incoming';
 export interface Folder {
   id: string;
   name: string;
   photos: Photo[];
   skipped: number;
   signature: string;
+  role?: CollectionRole;
+}
+export interface ArchiveLocation { id: string; folderName: string; path: string; name: string; size: number; hash?: string }
+export interface ArchiveMatchGroup { id: string; bytes: number; incoming: ArchiveLocation[]; archive: ArchiveLocation[] }
+export interface ArchiveCheck {
+  archiveChecked: number;
+  incomingChecked: number;
+  uncheckedArchive: number;
+  uncheckedIncoming: number;
+  alreadyCount: number;
+  duplicatedBytes: number;
+  uniqueCount: number;
+  weakerCount: number;
+  groups: ArchiveMatchGroup[];
+  unique: ArchiveLocation[];
 }
 export interface Group { id: string; items: Photo[]; extraBytes: number }
 export interface Progress { completed: number; total: number; bytes: number; totalBytes: number; name: string }
