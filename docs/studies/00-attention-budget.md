@@ -105,7 +105,7 @@ The agent proceeded on inferred requirements from the user's initial instruction
 - **Human decisions:** 2 (approval of #6; change request on PR #7)
 - **Human review minutes:** Not yet recorded
 - **Blocking questions:** 1 (GitHub issue #6 access failure)
-- **CI runs:** (to be updated after correction)
+- **CI runs:** 4 (initial commit; initial completion; correction commit; correction completion)
 - **Files changed outside scope:** 0
 - **Guardrail stops:** 0
 
