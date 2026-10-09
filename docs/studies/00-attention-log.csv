@@ -8,3 +8,4 @@ at,actor,kind,minutes,note
 2026-10-08T01:50:00Z,agent,ci_run,,Correction commit: rewrote study doc per #6 spec (hypothesis/procedure/budgets/metrics/outcome labels); fixed CSV schema (at/actor/kind/minutes/note); added safety.test.mjs (locks no-deletion/no-move/exact-vs-related separation); updated attention.test.mjs for new schema. Local tests pass (38/38).
 2026-10-08T01:51:00Z,agent,ci_run,,Correction CI completed successfully. All checks passed: CI/verify + Vercel + Vercel Preview Comments. 38 tests pass including 3 new safety regression tests.
 2026-10-08T01:51:00Z,agent,decision_requested,,Review requested on corrected PR #7. Per procedure step 6: any further review round is decision 3 and outcome becomes budget_exceeded.
+2026-10-09T14:52:00Z,human,decision_made,,Decision 3: Review of corrected PR #7; study closed as budget_exceeded; minimal note correction requested.

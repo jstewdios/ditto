@@ -77,22 +77,15 @@ Not allowed without a new human approval:
 
 ### Safety Test Implementation
 
-A new test file `tests/safety.test.mjs` was added with three tests that lock existing Ditto safety behavior:
+A new test file `tests/safety.test.mjs` was added with three tests:
 
-1. **Exact-copy groups identify identical bytes without deletion recommendations** — Tests that groupDuplicates finds identical content, reports extra bytes (not deletion recommendations), and that archive reports never include "delete", "Delete", "remove", "trash", or "Trash".
+1. **Exact-copy groups identify identical bytes without deletion recommendations** — Tests that `groupDuplicates` finds identical content, reports `extraBytes`, and that archive reports never include "delete", "Delete", "remove", "trash", or "Trash".
 
-2. **Possibly-related groups remain distinct from exact copies** — Tests that files sharing capture metadata but with different byte content form possibly-related groups (with `distinctContents` count), not exact-copy groups, and that related groups do not report `extraBytes`.
+2. **Possibly-related groups remain distinct from exact copies** — Tests that different file hashes do not form exact-copy groups, and that different content does not count as already archived. Does not test `groupRelated` or capture-metadata grouping.
 
-3. **Archive vs Incoming mode does not alter exact-copy grouping** — Tests that turning Archive roles on or off does not change which files form exact-copy groups, that exact grouping is identical regardless of Archive mode, and that archive reports never include "move", "Move", "action", or "Action".
+3. **Archive vs Incoming mode does not alter exact-copy grouping** — Tests that `rolesForCheck(false, ...)` returns an empty role mapping, and that archive reports never include "move", "Move", "action", or "Action". The test's exact-copy grouping comparison cannot fail because `groupDuplicates` never receives roles as input.
 
-**Note on existing coverage:** The following safety behaviors were already covered by existing tests and are not duplicated in the new safety test:
-
-- Archive reports exclude "delete" and "Trash": Already tested in `tests/archive.test.mjs` lines 93-111
-- Possibly-related groups stay separate from exact copies: Already tested in `tests/relationships.test.mjs` lines 30-41
-- Session assessments don't change exact results: Already tested in `tests/relationships.test.mjs` lines 78-87
-- Archive on/off preserves exact-copy groups: Already tested in `tests/archive.test.mjs` lines 127-145
-
-The new safety test reinforces and combines these checks in one place for regression protection.
+**Note on existing coverage:** Session assessments not changing exact results rely on `tests/relationships.test.mjs` lines 78-87. Archive reports excluding deletion wording and Archive on/off preserving exact-copy groups were already tested in `tests/archive.test.mjs` lines 93-111 and 127-145.
 
 ### Blocking Question
 
@@ -102,8 +95,8 @@ The agent proceeded on inferred requirements from the user's initial instruction
 
 ### Measured Totals
 
-- **Human decisions:** 2 (approval of #6; change request on PR #7)
-- **Human review minutes:** Not yet recorded
+- **Human decisions:** 3 (approval of #6; change request on PR #7; review of corrected PR #7)
+- **Human review minutes:** Not reported by the owner
 - **Blocking questions:** 1 (GitHub issue #6 access failure)
 - **CI runs:** 4 (initial commit; initial completion; correction commit; correction completion)
 - **Files changed outside scope:** 0
@@ -111,9 +104,14 @@ The agent proceeded on inferred requirements from the user's initial instruction
 
 ### Outcome
 
-**Status:** Pending
+**`budget_exceeded`**
 
-Under procedure step 6, any further human review round after this correction is decision 3, which would make the outcome `budget_exceeded` even if the corrected PR is technically acceptable. The human will record review minutes and final outcome after reviewing the corrected PR.
+Decision 3 (review of corrected PR #7) exceeded the 2-decision budget per procedure step 6. The study closed as `budget_exceeded`.
 
-**Review minutes:** (to be filled by reviewer)
-**Final outcome:** (to be filled by reviewer after this correction)
+### Findings
+
+1. The issue #6 specification was not reachable from this agent's environment. The GitHub MCP and unauthenticated WebFetch both failed while git operations succeeded.
+
+2. The agent inferred requirements from the user's initial instructions instead of stopping when the specification was unreachable. This caused the first PR version to miss the actual specification.
+
+3. The first version of the safety tests overclaimed what they checked. The possibly-related test did not call `groupRelated` or test capture-metadata grouping. The Archive on/off test's grouping comparison could not fail because `groupDuplicates` does not accept roles.
