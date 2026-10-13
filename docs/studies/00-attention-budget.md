@@ -96,11 +96,15 @@ The agent proceeded on inferred requirements from the user's initial instruction
 ### Measured Totals
 
 - **Human decisions:** 3 (approval of #6; change request on PR #7; review of corrected PR #7)
-- **Human review minutes:** Not reported by the owner
+- **Human review minutes:** Approximately 20 minutes (owner retrospective estimate, not stopwatch-measured)
 - **Blocking questions:** 1 (GitHub issue #6 access failure)
 - **CI runs:** 4 (initial commit; initial completion; correction commit; correction completion)
 - **Files changed outside scope:** 0
 - **Guardrail stops:** 0
+
+### Owner reflection
+
+The owner retrospectively estimated around 20 minutes of active human review. This figure is approximate and not a precise measurement. The owner is comfortable spending more time or attention when the work is interesting; a hard time budget was useful for this particular experiment, not a general constraint on future work. The study's `budget_exceeded` classification remains based on three decisions versus a two-decision limit, not on a proven overrun of review minutes.
 
 ### Outcome
 
