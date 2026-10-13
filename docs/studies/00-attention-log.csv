@@ -9,3 +9,4 @@ at,actor,kind,minutes,note
 2026-10-08T01:51:00Z,agent,ci_run,,Correction CI completed successfully. All checks passed: CI/verify + Vercel + Vercel Preview Comments. 38 tests pass including 3 new safety regression tests.
 2026-10-08T01:51:00Z,agent,decision_requested,,Review requested on corrected PR #7. Per procedure step 6: any further review round is decision 3 and outcome becomes budget_exceeded.
 2026-10-09T14:52:00Z,human,decision_made,,Decision 3: Review of corrected PR #7; study closed as budget_exceeded; minimal note correction requested.
+2026-10-13T18:42:00Z,human,review_minutes,20,Owner retrospective estimate of total Study 00 human review time approximately 20 minutes; not stopwatch-measured. Willing to spend additional attention when the work is interesting; time cap is an experimental measurement rather than a standing personal constraint.
