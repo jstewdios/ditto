@@ -22,9 +22,18 @@ self.onmessage = async ({ data }: MessageEvent<{ photos: Photo[] }>) => {
       }
     };
     try {
-      if (photo.size === 0) throw new Error('Empty file; no photo content to compare.');
+      if (photo.size === 0) throw new Error('Empty file; no file content to compare.');
       const hash = await hashFile(photo.file, (count: number) => { bytes += count; report(); });
-      if (!metadata.has(hash)) metadata.set(hash, await readCapture(photo.file));
+      // Study 04: Only extract capture metadata from photo formats.
+      // Other files get a null capture to maintain the existing structure.
+      // Default to true for backward compatibility when isPhoto is undefined.
+      if (!metadata.has(hash)) {
+        if (photo.isPhoto !== false) {
+          metadata.set(hash, await readCapture(photo.file));
+        } else {
+          metadata.set(hash, null);
+        }
+      }
       // Files already live in the UI; return only the small scan result.
       records.push({ id: photo.id, size: photo.size, hash, capture: metadata.get(hash) });
     } catch {

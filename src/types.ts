@@ -10,6 +10,7 @@ export interface Photo {
   hash?: string;
   error?: string;
   capture?: Capture;
+  isPhoto?: boolean; // Study 04: Track whether this is a photo format for feature availability
 }
 export interface Capture {
   burst?: { status: string; uuid: string | null; source: string | null };
@@ -28,8 +29,9 @@ export type CollectionRole = 'archive' | 'incoming';
 export interface Folder {
   id: string;
   name: string;
-  photos: Photo[];
-  skipped: number;
+  photos: Photo[]; // Study 04: Now includes all file types, not just photos
+  skipped: number; // Empty files
+  otherFiles?: number; // Study 04: Count of non-photo files
   signature: string;
   role?: CollectionRole;
 }

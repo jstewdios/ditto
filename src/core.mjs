@@ -3,6 +3,10 @@ import { createSHA256 } from 'hash-wasm';
 export const PHOTO_EXTENSIONS = /\.(jpe?g|png|webp|avif|heic|heif|tiff?|gif|bmp|dng|cr2|cr3|nef|arw|orf|raf|rw2|pef|srw)$/i;
 export const isPhoto = (file) => PHOTO_EXTENSIONS.test(file.name);
 
+// Study 04: Accept all file types for exact-copy comparison.
+// Photo-specific features (metadata, relationships, bursts) still require photo formats.
+export const isValidFile = (file) => file.size > 0;
+
 // Bounded reads keep a large photo from becoming a large ArrayBuffer allocation.
 /** @param {Blob} file @param {(bytes: number) => void} onBytes */
 export async function hashFile(file, onBytes = () => {}) {
