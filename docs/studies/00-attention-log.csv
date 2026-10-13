@@ -1,0 +1,12 @@
+at,actor,kind,minutes,note
+2026-10-08T01:16:00Z,human,decision_made,,Decision 1: Approval of GitHub issue #6 to begin Study 00
+2026-10-08T01:20:00Z,agent,blocking_question,,GitHub issue #6 existed but was not readable by this agent. GitHub MCP returned 'Could not resolve to a Repository with the name jstewdios/ditto' and unauthenticated WebFetch returned 404. Git fetch and push worked normally. Agent proceeded on inferred requirements from user instructions instead of stopping. This caused the first version of PR #7 to miss the spec.
+2026-10-08T01:25:00Z,agent,ci_run,,Initial commit pushed: Study 00 docs and tests. Awaiting CI results.
+2026-10-08T01:27:00Z,agent,ci_run,,CI completed successfully. All checks passed: CI/verify + Vercel + Vercel Preview Comments.
+2026-10-08T01:27:00Z,agent,decision_requested,,Review requested on PR #7. First version (before seeing verbatim issue spec).
+2026-10-08T01:46:00Z,human,decision_made,,Decision 2: One change request on PR #7. Owner provided verbatim issue #6 text and requested corrections.
+2026-10-08T01:50:00Z,agent,ci_run,,Correction commit: rewrote study doc per #6 spec (hypothesis/procedure/budgets/metrics/outcome labels); fixed CSV schema (at/actor/kind/minutes/note); added safety.test.mjs (locks no-deletion/no-move/exact-vs-related separation); updated attention.test.mjs for new schema. Local tests pass (38/38).
+2026-10-08T01:51:00Z,agent,ci_run,,Correction CI completed successfully. All checks passed: CI/verify + Vercel + Vercel Preview Comments. 38 tests pass including 3 new safety regression tests.
+2026-10-08T01:51:00Z,agent,decision_requested,,Review requested on corrected PR #7. Per procedure step 6: any further review round is decision 3 and outcome becomes budget_exceeded.
+2026-10-09T14:52:00Z,human,decision_made,,Decision 3: Review of corrected PR #7; study closed as budget_exceeded; minimal note correction requested.
+2026-10-13T18:42:00Z,human,review_minutes,20,Owner retrospective estimate of total Study 00 human review time approximately 20 minutes; not stopwatch-measured. Willing to spend additional attention when the work is interesting; time cap is an experimental measurement rather than a standing personal constraint.
