@@ -48,6 +48,10 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
       <h3>Your folders stay yours</h3><p>File contents, paths, and metadata are processed in this browser. Ditto has no file uploads, analytics, or file-changing controls. Closing or reloading the page clears the session. A report, including study assessments, is saved only when you export it.</p>
       <h3>Choose separate folders</h3><p>Include subfolders by selecting their parent once. Folders are not labeled Archive or Incoming unless you turn on that workflow. Avoid adding a folder and its parent separately: browsers hide full disk paths, so Ditto cannot reliably recognize overlapping selections. Choose one folder at a time, or drop several together.</p>
       <h3>Supported formats</h3><p>All file types are checked for exact copies. Empty files are excluded. Photo formats (JPEG, PNG, WebP, GIF, BMP, AVIF, HEIC, TIFF, and common camera RAW extensions) receive metadata extraction for relationship views. Your browser may not preview every format. Missing previews or metadata do not prevent file comparison.</p>
+      <h3>Frequently asked questions</h3>
+      <p><strong>Does Ditto upload my files?</strong><br />No. Everything is hashed locally in the browser. File contents and paths never leave your device.</p>
+      <p><strong>Does it tell me what to delete?</strong><br />No, by design. It shows exact copies for inspection; a copy might be a backup worth keeping. Ditto provides information, not cleanup recommendations.</p>
+      <p><strong>Can I check whether files are already in my archive?</strong><br />Yes, with the optional Archive vs Incoming mode, which matches exact content only. Turn it on after viewing exact copies, assign roles to your folders, and see which Incoming files have exact Archive counterparts.</p>
       <p className="help-note">An extra copy may be an intentional backup. Ditto shows where copies are; it does not decide which one you should keep.</p>
     </div>
   </dialog>;
