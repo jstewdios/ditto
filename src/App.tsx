@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDownToLine, ArrowRight, Check, ChevronLeft, ChevronRight, Copy, FileImage, Folder as FolderIcon, FolderOpen, FolderPlus, Info, LoaderCircle, LockKeyhole, Plus, ScanLine, ShieldCheck, X } from 'lucide-react';
-import { createReport, formatBytes, groupDuplicates, readEntry } from './core.mjs';
+import { ArrowDownToLine, ArrowRight, Check, ChevronLeft, ChevronRight, Copy, FileImage, Folder as FolderIcon, FolderOpen, FolderPlus, Grid3x3, Info, List, LoaderCircle, LockKeyhole, Plus, ScanLine, ShieldCheck, X } from 'lucide-react';
+import { createReport, formatBytes, getFileCategory, groupDuplicates, readEntry } from './core.mjs';
 import { archiveCheck, createArchiveReport, rolesForCheck, viewAfterArchiveMode } from './archive.mjs';
 import { clearMetadataCache, makeFolder } from './photos';
 import { CopyCard, PhotoPreview } from './PhotoCards';
@@ -41,6 +41,7 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
     <div className="help-content">
       <h3>Same file, wherever it lives</h3><p>Ditto reads complete files and compares their sizes and SHA-256 fingerprints. Renamed copies match. Different files with the same name do not.</p>
       <h3>Study 04: Any file type</h3><p>Ditto now inspects exact copies across all file types: photos, audio, documents, archives, and more. Photo-specific features (Possibly related and Same burst) remain available for supported photo formats only.</p>
+      <h3>Study 05: Filter and navigate</h3><p>Filter exact copies by file type (All, Photos, Audio, Documents, Other) or switch between card and list views. Filtering changes what you see, not what was compared. Summary totals always show all results.</p>
       <h3>Exact copies and photo relationships</h3><p>Exact copies have identical full file contents. The separate Possibly related view groups different photo contents with the same recorded capture second. That can bring edits together when capture metadata survives, but it can also bring separate burst shots together. Non-photo files appear in exact copy results but not in photo relationship views.</p>
       <h3>Study 03: Archive and Incoming</h3><p>This is optional, after you have seen exact copies. Turn it on to mark one folder as Archive and another as Incoming. Already archived counts only exact file content. It shows where those Archive copies live, how much space the Incoming copies use, and which Incoming files have no exact Archive copy. Turning it off returns to exact copies without comparing again. An Archive match is not a suggestion to delete or move anything.</p><h3>Photo evidence you can inspect</h3><p>Each photo candidate group shows fractional seconds, camera model, serial number, and GPS coordinates when recorded. Conflicts and missing values stay visible. No file is labeled the original, and these groups never count as extra copies or recoverable space. Missing time-zone offsets are not guessed; files with and without offsets are assessed separately.</p><h3>Study 01: versions</h3><p>Compare a group and mark whether it looks related, contains different photographs, or leaves you unsure. Assessments stay in this session and can be exported with the evidence. <a href="/study-01.zip" download>Download the synthetic study folders</a> to try edits, burst shots, conflicting cameras, and missing metadata.</p>
       <h3>Study 02: explicit bursts</h3><p>The Same burst view connects photo files with a shared Apple BurstUUID, including files with different or missing capture times. It does not use proximity in time, sequence numbers, or Live Photo identifiers. Exports and backups can share the ID, so file counts are not frame counts. Inspect metadata for all checked files, and export burst notes to compare which exports retained the ID. <a href="/study-02.zip" download>Download the synthetic burst study folders</a>.</p>
@@ -73,6 +74,8 @@ export default function App() {
   const [selected, setSelected] = useState<Group>();
   const [help, setHelp] = useState(false);
   const [page, setPage] = useState(0);
+  const [filterCategory, setFilterCategory] = useState<'all' | 'photos' | 'audio' | 'documents' | 'other'>('all');
+  const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
   const folderInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const worker = useRef<Worker | null>(null);
@@ -81,8 +84,20 @@ export default function App() {
   const skipped = folders.reduce((sum, folder) => sum + folder.skipped, 0);
   const otherFiles = folders.reduce((sum, folder) => sum + (folder.otherFiles || 0), 0);
   const photoFiles = photos.length - otherFiles;
+  
+  // Study 05: Filter groups by category while keeping totals unfiltered
+  const filteredGroups = useMemo(() => {
+    if (filterCategory === 'all') return groups;
+    return groups.filter(group => {
+      const groupCategory = getFileCategory(group.items[0]);
+      return groupCategory === filterCategory;
+    });
+  }, [groups, filterCategory]);
+  
+  // Summary totals show ALL results, not filtered results
   const extraCopies = groups.reduce((sum, group) => sum + group.items.length - 1, 0);
   const extraBytes = groups.reduce((sum, group) => sum + group.extraBytes, 0);
+  
   const archiveFolders = folders.filter((folder) => folder.role === 'archive').length;
   const incomingFolders = folders.filter((folder) => folder.role === 'incoming').length;
   const archive: ArchiveCheck = useMemo(() => {
@@ -92,7 +107,7 @@ export default function App() {
   }, [scannedRecords, photos, folders, relatedGroups, archiveMode]);
   useEffect(() => () => { worker.current?.terminate(); clearMetadataCache(); }, []);
 
-  function invalidate() { setBurstGroups([]); setScannedRecords([]); setSelectedBurst(undefined); setBurstCoverage({ identified: 0, absent: 0, unsupported: 0, invalid: 0, unavailable: 0 }); setRelatedGroups([]); setCoverage({ eligible: 0, missingTime: 0, unavailable: 0 }); setReviews({}); setSelectedRelated(undefined); setView('exact'); setGroups([]); setResult(undefined); setSelected(undefined); setPage(0); clearMetadataCache(); }
+  function invalidate() { setBurstGroups([]); setScannedRecords([]); setSelectedBurst(undefined); setBurstCoverage({ identified: 0, absent: 0, unsupported: 0, invalid: 0, unavailable: 0 }); setRelatedGroups([]); setCoverage({ eligible: 0, missingTime: 0, unavailable: 0 }); setReviews({}); setSelectedRelated(undefined); setView('exact'); setGroups([]); setResult(undefined); setSelected(undefined); setPage(0); setFilterCategory('all'); clearMetadataCache(); }
 
   async function addSelections(selections: { name: string; entries: { file: File; path: string }[] }[]) {
     setAdding(true); setNotice('');
@@ -228,10 +243,72 @@ export default function App() {
               {result.errors.length > 0 && <details className="scan-errors"><summary>{number(result.errors.length)} {result.errors.length === 1 ? 'file could' : 'files could'} not be compared</summary><ul>{result.errors.map((error, index) => <li key={index}><span>{error.path}</span><strong>{error.error}</strong></li>)}</ul><p>These files are excluded from the results.</p></details>}
               {view === 'archive' ? <ArchiveResults check={archive} archiveFolders={archiveFolders} incomingFolders={incomingFolders} onShowRelated={() => { setView('related'); setPage(0); }} /> : view === 'burst' ? <BurstResults groups={burstGroups} coverage={burstCoverage} records={scannedRecords.filter((file) => file.isPhoto !== false)} onSelect={setSelectedBurst} /> : view === 'related' ? <RelatedResults groups={relatedGroups} coverage={coverage} reviews={reviews} onSelect={setSelectedRelated} /> : <>
               <div className="result-summary"><div><span className="stat-number">{number(groups.length)}</span><span>repeated {groups.length === 1 ? 'file' : 'files'}</span></div><div><span className="stat-number">{number(extraCopies)}</span><span>extra {extraCopies === 1 ? 'copy' : 'copies'}</span></div><div><span className="stat-number stat-bytes">{formatBytes(extraBytes)}</span><span>in extra copies</span></div><span className="verified-label"><ShieldCheck size={16} />Exact matches only</span></div>
-              {groups.length ? <><div className="results-heading"><h2>Meet your repeats <span>{number(groups.length)}</span></h2><p>Largest extra copies first</p></div><div className="group-grid">{groups.slice(page * 24, (page + 1) * 24).map((group, index) => <button className="group-card" key={group.id} onClick={() => setSelected(group)} aria-label={`Compare ${group.items.length} copies of ${group.items[0].name}`}>
-                <div className="group-image"><PhotoPreview photo={group.items[0]} /><span className="copy-pill"><Copy size={13} />{number(group.items.length)} copies</span></div>
-                <div className="group-info"><div className="group-title"><span className="group-index">{String(page * 24 + index + 1).padStart(2, '0')}</span><h3>{group.items[0].name}</h3></div><ul className="copy-locations">{group.items.slice(0, 4).map((item) => <li key={item.id}><span>{item.folderName}</span><span>{item.path}</span></li>)}{group.items.length > 4 && <li>+ {number(group.items.length - 4)} more in the comparison</li>}</ul><div className="group-bottom"><span>{formatBytes(group.extraBytes)} in extra copies</span><span className="compare-link">Compare<ArrowRight size={15} /></span></div></div>
-              </button>)}</div>{groups.length > 24 && <div className="pagination"><span>{page * 24 + 1}–{Math.min((page + 1) * 24, groups.length)} of {number(groups.length)} groups</span><button className="secondary-button" disabled={!page} onClick={() => setPage(page - 1)}><ChevronLeft size={16} />Previous</button><button className="secondary-button" disabled={(page + 1) * 24 >= groups.length} onClick={() => setPage(page + 1)}>Next<ChevronRight size={16} /></button></div>}</>
+              {groups.length ? <>
+                <div className="results-controls">
+                  <div className="filter-controls" role="group" aria-label="Filter by file type">
+                    <button className={filterCategory === 'all' ? 'active' : ''} onClick={() => { setFilterCategory('all'); setPage(0); }}>All <span>{number(groups.length)}</span></button>
+                    <button className={filterCategory === 'photos' ? 'active' : ''} onClick={() => { setFilterCategory('photos'); setPage(0); }}>Photos <span>{number(groups.filter(g => getFileCategory(g.items[0]) === 'photos').length)}</span></button>
+                    <button className={filterCategory === 'audio' ? 'active' : ''} onClick={() => { setFilterCategory('audio'); setPage(0); }}>Audio <span>{number(groups.filter(g => getFileCategory(g.items[0]) === 'audio').length)}</span></button>
+                    <button className={filterCategory === 'documents' ? 'active' : ''} onClick={() => { setFilterCategory('documents'); setPage(0); }}>Documents <span>{number(groups.filter(g => getFileCategory(g.items[0]) === 'documents').length)}</span></button>
+                    <button className={filterCategory === 'other' ? 'active' : ''} onClick={() => { setFilterCategory('other'); setPage(0); }}>Other <span>{number(groups.filter(g => getFileCategory(g.items[0]) === 'other').length)}</span></button>
+                  </div>
+                  <div className="view-toggle" role="group" aria-label="View mode">
+                    <button className={viewMode === 'cards' ? 'active' : ''} onClick={() => { setViewMode('cards'); setPage(0); }} aria-label="Card view"><Grid3x3 size={16} /></button>
+                    <button className={viewMode === 'list' ? 'active' : ''} onClick={() => { setViewMode('list'); setPage(0); }} aria-label="List view"><List size={16} /></button>
+                  </div>
+                </div>
+                {filterCategory !== 'all' && <p className="filter-note">Showing {filterCategory} only. Summary totals include all file types.</p>}
+                <div className="results-heading"><h2>Meet your repeats <span>{number(filteredGroups.length)}</span></h2><p>Largest extra copies first</p></div>
+                {viewMode === 'list' ? <div className="group-list-view">
+                  <table className="group-table">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>File name</th>
+                        <th>Copies</th>
+                        <th>Extra bytes</th>
+                        <th>Locations</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredGroups.slice(page * 50, (page + 1) * 50).map((group, index) => {
+                        const firstItem = group.items[0];
+                        const category = getFileCategory(firstItem);
+                        return <tr key={group.id}>
+                          <td className="index-cell">{page * 50 + index + 1}</td>
+                          <td className="name-cell">
+                            <div className="name-content">
+                              <span className="file-icon">{category === 'photos' ? '📷' : category === 'audio' ? '🎵' : category === 'documents' ? '📄' : '📦'}</span>
+                              <span className="name-text">{firstItem.name}</span>
+                            </div>
+                          </td>
+                          <td className="count-cell">{number(group.items.length)}</td>
+                          <td className="bytes-cell">{formatBytes(group.extraBytes)}</td>
+                          <td className="locations-cell">
+                            <div className="location-list">
+                              {group.items.slice(0, 2).map((item, i) => (
+                                <div key={i} className="location-item">
+                                  <span className="folder-name">{item.folderName}</span>
+                                  <span className="file-path">{item.path}</span>
+                                </div>
+                              ))}
+                              {group.items.length > 2 && <span className="more-locations">+ {number(group.items.length - 2)} more</span>}
+                            </div>
+                          </td>
+                          <td className="action-cell">
+                            <button className="compare-button" onClick={() => setSelected(group)}>Compare</button>
+                          </td>
+                        </tr>;
+                      })}
+                    </tbody>
+                  </table>
+                </div> : <div className="group-grid">{filteredGroups.slice(page * 24, (page + 1) * 24).map((group, index) => <button className="group-card" key={group.id} onClick={() => setSelected(group)} aria-label={`Compare ${group.items.length} copies of ${group.items[0].name}`}>
+                  <div className="group-image"><PhotoPreview photo={group.items[0]} /><span className="copy-pill"><Copy size={13} />{number(group.items.length)} copies</span></div>
+                  <div className="group-info"><div className="group-title"><span className="group-index">{String(page * 24 + index + 1).padStart(2, '0')}</span><h3>{group.items[0].name}</h3></div><ul className="copy-locations">{group.items.slice(0, 4).map((item) => <li key={item.id}><span>{item.folderName}</span><span>{item.path}</span></li>)}{group.items.length > 4 && <li>+ {number(group.items.length - 4)} more in the comparison</li>}</ul><div className="group-bottom"><span>{formatBytes(group.extraBytes)} in extra copies</span><span className="compare-link">Compare<ArrowRight size={15} /></span></div></div>
+                </button>)}</div>}
+                {filteredGroups.length > (viewMode === 'list' ? 50 : 24) && <div className="pagination"><span>{page * (viewMode === 'list' ? 50 : 24) + 1}–{Math.min((page + 1) * (viewMode === 'list' ? 50 : 24), filteredGroups.length)} of {number(filteredGroups.length)} groups</span><button className="secondary-button" disabled={!page} onClick={() => setPage(page - 1)}><ChevronLeft size={16} />Previous</button><button className="secondary-button" disabled={(page + 1) * (viewMode === 'list' ? 50 : 24) >= filteredGroups.length} onClick={() => setPage(page + 1)}>Next<ChevronRight size={16} /></button></div>}
+              </>
                 : <div className="no-matches"><span className="no-matches-icon"><Check size={31} /></span><h2>{result.checked ? 'No exact copies found.' : 'No files could be compared.'}</h2><p>{result.checked ? 'Every successfully checked file has different content. Edited or resized versions may still be present.' : 'Check the file notices above, then try another folder.'}</p><button className="secondary-button" onClick={() => folderInput.current?.click()}><FolderPlus size={17} />Add another folder</button></div>}
               </>}
               <div className="results-footer"><p>{skipped ? `${number(skipped)} empty ${skipped === 1 ? 'file' : 'files'} excluded. ` : ''}{otherFiles > 0 && (view === 'related' || view === 'burst') ? `${number(otherFiles)} non-photo ${otherFiles === 1 ? 'file' : 'files'} checked for exact copies only. ` : ''}{view === 'archive' ? 'An Archive match is exact file content, not a suggestion to delete or move the Incoming copy.' : view === 'exact' ? 'An extra copy might be a backup worth keeping.' : 'Photo relationships do not imply duplicate content or recoverable space.'}</p><button className="text-button" onClick={scan}><ScanLine size={16} />Compare again</button></div>

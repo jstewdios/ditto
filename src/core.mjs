@@ -7,6 +7,18 @@ export const isPhoto = (file) => PHOTO_EXTENSIONS.test(file.name);
 // Photo-specific features (metadata, relationships, bursts) still require photo formats.
 export const isValidFile = (file) => file.size > 0;
 
+// Study 05: File type categorization for filtering
+const AUDIO_EXTENSIONS = /\.(mp3|m4a|aac|flac|wav|ogg|opus|wma|aiff?|ape|alac)$/i;
+const DOCUMENT_EXTENSIONS = /\.(pdf|docx?|txt|rtf|odt|md|tex|pages|epub|mobi|xlsx?|pptx?|csv|tsv|json|xml|html?|css|js|ts|jsx|tsx|vue|py|java|cpp|c|h|swift|rb|go|rs|php|sh|bat|ps1)$/i;
+
+export const getFileCategory = (file) => {
+  const name = typeof file === 'string' ? file : file.name;
+  if (isPhoto({ name })) return 'photos';
+  if (AUDIO_EXTENSIONS.test(name)) return 'audio';
+  if (DOCUMENT_EXTENSIONS.test(name)) return 'documents';
+  return 'other';
+};
+
 // Bounded reads keep a large photo from becoming a large ArrayBuffer allocation.
 /** @param {Blob} file @param {(bytes: number) => void} onBytes */
 export async function hashFile(file, onBytes = () => {}) {
