@@ -45,7 +45,11 @@ self.onmessage = async ({ data }: MessageEvent<{ photos: Photo[] }>) => {
     completed++;
     report(completed === photos.length);
   }
-  const related = groupRelated(records).map((group) => ({ ...group, items: group.items.map((item: { id: string }) => item.id) }));
-  const bursts = groupBursts(records).map((group) => ({ ...group, items: group.items.map((item: { id: string }) => item.id) }));
-  self.postMessage({ type: 'done', records, errors, related, coverage: relationshipCoverage(records), bursts, burstCoverage: burstCoverage(records) });
+  // Only photo records contribute to photo-specific relationships and coverage.
+  // Keep all records for exact-copy and archive comparisons.
+  const photoIds = new Set(photos.filter((file) => file.isPhoto !== false).map((file) => file.id));
+  const photoRecords = records.filter((record) => photoIds.has(record.id));
+  const related = groupRelated(photoRecords).map((group) => ({ ...group, items: group.items.map((item: { id: string }) => item.id) }));
+  const bursts = groupBursts(photoRecords).map((group) => ({ ...group, items: group.items.map((item: { id: string }) => item.id) }));
+  self.postMessage({ type: 'done', records, errors, related, coverage: relationshipCoverage(photoRecords), bursts, burstCoverage: burstCoverage(photoRecords) });
 };
