@@ -1,22 +1,41 @@
 import exifr from 'exifr';
-import { isPhoto } from './core.mjs';
+import { isPhoto, isValidFile } from './core.mjs';
 import { readDimensions } from './dimensions.mjs';
 import type { Folder, Photo } from './types';
 
 export async function makeFolder(name: string, entries: { file: File; path: string }[]): Promise<Folder> {
   const id = crypto.randomUUID();
   const photos: Photo[] = [];
+  let emptyFiles = 0;
+  let otherFiles = 0;
+  
   for (const entry of entries) {
-    if (!isPhoto(entry.file)) continue;
-    photos.push({ id: crypto.randomUUID(), folderId: id, folderName: name, name: entry.file.name,
-      path: entry.path, size: entry.file.size, lastModified: entry.file.lastModified, file: entry.file });
+    // Study 04: Accept all non-empty files. Track photo vs non-photo for feature availability.
+    if (entry.file.size === 0) {
+      emptyFiles++;
+      continue;
+    }
+    const photoFile = isPhoto(entry.file);
+    photos.push({ 
+      id: crypto.randomUUID(), 
+      folderId: id, 
+      folderName: name, 
+      name: entry.file.name,
+      path: entry.path, 
+      size: entry.file.size, 
+      lastModified: entry.file.lastModified, 
+      file: entry.file,
+      isPhoto: photoFile
+    });
+    if (!photoFile) otherFiles++;
   }
+  
   // A selection signature avoids accidentally counting the same selection twice.
   // It is not used to declare photos identical; only full content hashes do that.
   const manifest = JSON.stringify(entries.map(({ file, path }) => [path, file.size, file.lastModified]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))));
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(manifest));
   const signature = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
-  return { id, name, photos, skipped: entries.length - photos.length, signature };
+  return { id, name, photos, skipped: emptyFiles, otherFiles, signature };
 }
 
 export interface Details { taken?: string; camera?: string; width?: number; height?: number; orientation?: string; status: 'read' | 'unavailable' }

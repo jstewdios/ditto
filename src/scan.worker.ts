@@ -22,11 +22,22 @@ self.onmessage = async ({ data }: MessageEvent<{ photos: Photo[] }>) => {
       }
     };
     try {
-      if (photo.size === 0) throw new Error('Empty file; no photo content to compare.');
+      if (photo.size === 0) throw new Error('Empty file; no file content to compare.');
       const hash = await hashFile(photo.file, (count: number) => { bytes += count; report(); });
-      if (!metadata.has(hash)) metadata.set(hash, await readCapture(photo.file));
+      // Study 04: Non-photo files must neither populate nor consume the photo metadata cache.
+      // Photo eligibility must be checked independently of cache state.
+      // Default to true for backward compatibility when isPhoto is undefined.
+      let capture;
+      if (photo.isPhoto === false) {
+        capture = null;
+      } else {
+        if (!metadata.has(hash)) {
+          metadata.set(hash, await readCapture(photo.file));
+        }
+        capture = metadata.get(hash);
+      }
       // Files already live in the UI; return only the small scan result.
-      records.push({ id: photo.id, size: photo.size, hash, capture: metadata.get(hash) });
+      records.push({ id: photo.id, size: photo.size, hash, capture });
     } catch {
       errors.push({ id: photo.id, path: photo.path, error: photo.size === 0 ? 'Empty file' : 'Could not read file' });
       bytes = startBytes + photo.size;
@@ -34,7 +45,11 @@ self.onmessage = async ({ data }: MessageEvent<{ photos: Photo[] }>) => {
     completed++;
     report(completed === photos.length);
   }
-  const related = groupRelated(records).map((group) => ({ ...group, items: group.items.map((item: { id: string }) => item.id) }));
-  const bursts = groupBursts(records).map((group) => ({ ...group, items: group.items.map((item: { id: string }) => item.id) }));
-  self.postMessage({ type: 'done', records, errors, related, coverage: relationshipCoverage(records), bursts, burstCoverage: burstCoverage(records) });
+  // Only photo records contribute to photo-specific relationships and coverage.
+  // Keep all records for exact-copy and archive comparisons.
+  const photoIds = new Set(photos.filter((file) => file.isPhoto !== false).map((file) => file.id));
+  const photoRecords = records.filter((record) => photoIds.has(record.id));
+  const related = groupRelated(photoRecords).map((group) => ({ ...group, items: group.items.map((item: { id: string }) => item.id) }));
+  const bursts = groupBursts(photoRecords).map((group) => ({ ...group, items: group.items.map((item: { id: string }) => item.id) }));
+  self.postMessage({ type: 'done', records, errors, related, coverage: relationshipCoverage(photoRecords), bursts, burstCoverage: burstCoverage(photoRecords) });
 };
