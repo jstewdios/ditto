@@ -107,7 +107,7 @@ export default function App() {
   }, [scannedRecords, photos, folders, relatedGroups, archiveMode]);
   useEffect(() => () => { worker.current?.terminate(); clearMetadataCache(); }, []);
 
-  function invalidate() { setBurstGroups([]); setScannedRecords([]); setSelectedBurst(undefined); setBurstCoverage({ identified: 0, absent: 0, unsupported: 0, invalid: 0, unavailable: 0 }); setRelatedGroups([]); setCoverage({ eligible: 0, missingTime: 0, unavailable: 0 }); setReviews({}); setSelectedRelated(undefined); setView('exact'); setGroups([]); setResult(undefined); setSelected(undefined); setPage(0); setFilterCategory('all'); clearMetadataCache(); }
+  function invalidate() { setBurstGroups([]); setScannedRecords([]); setSelectedBurst(undefined); setBurstCoverage({ identified: 0, absent: 0, unsupported: 0, invalid: 0, unavailable: 0 }); setRelatedGroups([]); setCoverage({ eligible: 0, missingTime: 0, unavailable: 0 }); setReviews({}); setSelectedRelated(undefined); setView('exact'); setGroups([]); setResult(undefined); setSelected(undefined); setPage(0); setFilterCategory('all'); setViewMode('cards'); clearMetadataCache(); }
 
   async function addSelections(selections: { name: string; entries: { file: File; path: string }[] }[]) {
     setAdding(true); setNotice('');
@@ -246,15 +246,15 @@ export default function App() {
               {groups.length ? <>
                 <div className="results-controls">
                   <div className="filter-controls" role="group" aria-label="Filter by file type">
-                    <button className={filterCategory === 'all' ? 'active' : ''} onClick={() => { setFilterCategory('all'); setPage(0); }}>All <span>{number(groups.length)}</span></button>
-                    <button className={filterCategory === 'photos' ? 'active' : ''} onClick={() => { setFilterCategory('photos'); setPage(0); }}>Photos <span>{number(groups.filter(g => getFileCategory(g.items[0]) === 'photos').length)}</span></button>
-                    <button className={filterCategory === 'audio' ? 'active' : ''} onClick={() => { setFilterCategory('audio'); setPage(0); }}>Audio <span>{number(groups.filter(g => getFileCategory(g.items[0]) === 'audio').length)}</span></button>
-                    <button className={filterCategory === 'documents' ? 'active' : ''} onClick={() => { setFilterCategory('documents'); setPage(0); }}>Documents <span>{number(groups.filter(g => getFileCategory(g.items[0]) === 'documents').length)}</span></button>
-                    <button className={filterCategory === 'other' ? 'active' : ''} onClick={() => { setFilterCategory('other'); setPage(0); }}>Other <span>{number(groups.filter(g => getFileCategory(g.items[0]) === 'other').length)}</span></button>
+                    <button aria-pressed={filterCategory === 'all'} className={filterCategory === 'all' ? 'active' : ''} onClick={() => { setFilterCategory('all'); setPage(0); }}>All <span>{number(groups.length)}</span></button>
+                    <button aria-pressed={filterCategory === 'photos'} className={filterCategory === 'photos' ? 'active' : ''} onClick={() => { setFilterCategory('photos'); setPage(0); }}>Photos <span>{number(groups.filter(g => getFileCategory(g.items[0]) === 'photos').length)}</span></button>
+                    <button aria-pressed={filterCategory === 'audio'} className={filterCategory === 'audio' ? 'active' : ''} onClick={() => { setFilterCategory('audio'); setPage(0); }}>Audio <span>{number(groups.filter(g => getFileCategory(g.items[0]) === 'audio').length)}</span></button>
+                    <button aria-pressed={filterCategory === 'documents'} className={filterCategory === 'documents' ? 'active' : ''} onClick={() => { setFilterCategory('documents'); setPage(0); }}>Documents <span>{number(groups.filter(g => getFileCategory(g.items[0]) === 'documents').length)}</span></button>
+                    <button aria-pressed={filterCategory === 'other'} className={filterCategory === 'other' ? 'active' : ''} onClick={() => { setFilterCategory('other'); setPage(0); }}>Other <span>{number(groups.filter(g => getFileCategory(g.items[0]) === 'other').length)}</span></button>
                   </div>
                   <div className="view-toggle" role="group" aria-label="View mode">
-                    <button className={viewMode === 'cards' ? 'active' : ''} onClick={() => { setViewMode('cards'); setPage(0); }} aria-label="Card view"><Grid3x3 size={16} /></button>
-                    <button className={viewMode === 'list' ? 'active' : ''} onClick={() => { setViewMode('list'); setPage(0); }} aria-label="List view"><List size={16} /></button>
+                    <button aria-pressed={viewMode === 'cards'} className={viewMode === 'cards' ? 'active' : ''} onClick={() => { setViewMode('cards'); setPage(0); }} aria-label="Card view"><Grid3x3 size={16} /></button>
+                    <button aria-pressed={viewMode === 'list'} className={viewMode === 'list' ? 'active' : ''} onClick={() => { setViewMode('list'); setPage(0); }} aria-label="List view"><List size={16} /></button>
                   </div>
                 </div>
                 {filterCategory !== 'all' && <p className="filter-note">Showing {filterCategory} only. Summary totals include all file types.</p>}
