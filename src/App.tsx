@@ -341,17 +341,8 @@ export default function App() {
                 <div className="format-hint">Photos, audio, documents & more<span>·</span>Exact copies · Photo relationships</div>
               </section>
               <div className="steps"><div><span>01</span><h3>Bring the folders</h3><p>Choose separate folders from your device or connected drives.</p></div><div><span>02</span><h3>Find the repeats</h3><p>Compare file contents, even when the names are different.</p></div><div><span>03</span><h3>See every copy</h3><p>Inspect locations and details. Export a list to come back to.</p></div></div>
-              <section className="landing-faq" aria-labelledby="faq-title">
-                <h2 id="faq-title">Frequently asked questions</h2>
-                {FAQ_ITEMS.map(({ question, answer }) => (
-                  <div key={question} className="faq-item">
-                    <h3>{question}</h3>
-                    <p>{answer}</p>
-                  </div>
-                ))}
-              </section>
             </>}
-        <footer className="workspace-footer"><span>Your files stay on your device.</span><button className="text-button" onClick={() => setHelp(true)}>What counts as a match?<ArrowRight size={14} /></button></footer>
+        <footer className="workspace-footer"><span>Your files stay on your device.</span><div className="footer-links"><button className="text-button" onClick={() => setHelp(true)}>What counts as a match?<ArrowRight size={14} /></button><a className="text-button" href="/faq.html">Frequently asked questions<ArrowRight size={14} /></a></div></footer>
       </main>
     </div>
     {dragging && <div className="drop-overlay" aria-hidden="true"><FolderPlus size={42} /><strong>Drop folders to add them</strong><span>Everything stays on your device</span></div>}
