@@ -9,6 +9,38 @@
     <meta property="og:description" content="A small, local file comparison tool. Find exact copies across all file types. Everything stays on your device, read-only." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Ditto — Find exact duplicate files in your browser</title>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Does Ditto upload my files?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Everything is hashed locally in the browser. File contents and paths never leave your device."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does it tell me what to delete?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No, by design. It shows exact copies for inspection; a copy might be a backup worth keeping. Ditto provides information, not cleanup recommendations."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I check whether files are already in my archive?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, with the optional Archive vs Incoming mode, which matches exact content only. Turn it on after viewing exact copies, assign roles to your folders, and see which Incoming files have exact Archive counterparts."
+          }
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>
