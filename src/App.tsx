@@ -13,6 +13,21 @@ import type { ArchiveCheck, BurstGroup, BurstCoverage, Capture, CollectionRole, 
 
 const number = (value: number) => value.toLocaleString();
 
+const FAQ_ITEMS = [
+  {
+    question: 'Does Ditto upload my files?',
+    answer: 'No. Everything is hashed locally in the browser. File contents and paths never leave your device.'
+  },
+  {
+    question: 'Does it tell me what to delete?',
+    answer: 'No, by design. It shows exact copies for inspection; a copy might be a backup worth keeping. Ditto provides information, not cleanup recommendations.'
+  },
+  {
+    question: 'Can I check whether files are already in my archive?',
+    answer: 'Yes, with the optional Archive vs Incoming mode, which matches exact content only. Turn it on after viewing exact copies, assign roles to your folders, and see which Incoming files have exact Archive counterparts.'
+  }
+];
+
 function CompareDialog({ group, onClose }: { group: Group; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [page, setPage] = useState(0);
@@ -49,9 +64,9 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
       <h3>Choose separate folders</h3><p>Include subfolders by selecting their parent once. Folders are not labeled Archive or Incoming unless you turn on that workflow. Avoid adding a folder and its parent separately: browsers hide full disk paths, so Ditto cannot reliably recognize overlapping selections. Choose one folder at a time, or drop several together.</p>
       <h3>Supported formats</h3><p>All file types are checked for exact copies. Empty files are excluded. Photo formats (JPEG, PNG, WebP, GIF, BMP, AVIF, HEIC, TIFF, and common camera RAW extensions) receive metadata extraction for relationship views. Your browser may not preview every format. Missing previews or metadata do not prevent file comparison.</p>
       <h3>Frequently asked questions</h3>
-      <p><strong>Does Ditto upload my files?</strong><br />No. Everything is hashed locally in the browser. File contents and paths never leave your device.</p>
-      <p><strong>Does it tell me what to delete?</strong><br />No, by design. It shows exact copies for inspection; a copy might be a backup worth keeping. Ditto provides information, not cleanup recommendations.</p>
-      <p><strong>Can I check whether files are already in my archive?</strong><br />Yes, with the optional Archive vs Incoming mode, which matches exact content only. Turn it on after viewing exact copies, assign roles to your folders, and see which Incoming files have exact Archive counterparts.</p>
+      {FAQ_ITEMS.map(({ question, answer }) => (
+        <p key={question}><strong>{question}</strong><br />{answer}</p>
+      ))}
       <p className="help-note">An extra copy may be an intentional backup. Ditto shows where copies are; it does not decide which one you should keep.</p>
     </div>
   </dialog>;
@@ -327,7 +342,7 @@ export default function App() {
               </section>
               <div className="steps"><div><span>01</span><h3>Bring the folders</h3><p>Choose separate folders from your device or connected drives.</p></div><div><span>02</span><h3>Find the repeats</h3><p>Compare file contents, even when the names are different.</p></div><div><span>03</span><h3>See every copy</h3><p>Inspect locations and details. Export a list to come back to.</p></div></div>
             </>}
-        <footer className="workspace-footer"><span>Your files stay on your device.</span><button className="text-button" onClick={() => setHelp(true)}>What counts as a match?<ArrowRight size={14} /></button></footer>
+        <footer className="workspace-footer"><span>Your files stay on your device.</span><div className="footer-links"><button className="text-button" onClick={() => setHelp(true)}>What counts as a match?<ArrowRight size={14} /></button><a className="text-button" href="/faq.html">Frequently asked questions<ArrowRight size={14} /></a></div></footer>
       </main>
     </div>
     {dragging && <div className="drop-overlay" aria-hidden="true"><FolderPlus size={42} /><strong>Drop folders to add them</strong><span>Everything stays on your device</span></div>}
