@@ -31,6 +31,22 @@ The Vite build produces `dist/`. Import this repository into Vercel with the Vit
 
 Exact-copy groups list the most bytes in extra copies first. An extra copy may be an intentional backup; the byte count is information, not a deletion recommendation. Photo relationships never contribute to these byte counts or imply redundant files.
 
+## What Ditto does and doesn't do
+
+**Ditto is a read-only inspection tool.** It finds exact copies and explores photo relationships using metadata. Everything stays on your device.
+
+- ✓ Finds files with identical content across all file types
+- ✓ Groups photos with the same capture timestamp (optional study)
+- ✓ Identifies Apple burst sequences (optional study)  
+- ✓ Checks whether incoming files exist in an archive (optional study)
+- ✓ Exports results as CSV reports for your records
+- ✗ Does not upload, move, edit, or delete any files
+- ✗ Does not recommend which copies to keep or remove
+- ✗ Does not perform visual similarity matching or AI-based comparison
+- ✗ Does not track changes across sessions (each session starts fresh)
+
+**Important:** Matching is byte-for-byte exact. Cropped, resized, recompressed, or otherwise edited versions of a photo are different files and will not match in the exact-copy view. They may appear together in "Possibly related" if capture metadata was preserved.
+
 ## What a match means
 
 Matching uses the full original file size and a SHA-256 fingerprint of every byte. Renaming a file does not change its match. Different file modification times do not change its match. Two different files with the same name or size are not grouped.
@@ -80,6 +96,10 @@ The question is: **Can someone understand where repeated files live without adop
 For the first feedback round, ask someone to compare two separate folders and inspect one group. Useful observations: Can they find a copy on disk using the displayed path? Do they trust why it was grouped? Do they expect edited/resized versions to appear? Does their next question concern cleanup, or finding a forgotten file?
 
 That evidence should determine the next slice. Study 01 explores metadata-based photo version candidates. Study 03 asks whether someone can see what is already in an Archive without Ditto touching files. Study 04 extends exact-copy inspection to all file types while preserving photo-specific relationships. Perceptual image similarity, audio fingerprinting, document version inference, cleanup actions, metadata editing, persistent catalogs, and AI search remain outside these studies.
+
+## License
+
+This project is open source under the MIT License. See the LICENSE file for details.
 
 ## Dependencies
 

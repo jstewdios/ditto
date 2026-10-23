@@ -1,0 +1,69 @@
+name: Beta Feedback
+description: Share your experience using Ditto
+title: "[Feedback] "
+labels: ["feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for trying Ditto. This feedback template focuses on evidence rather than feature requests.
+        
+  - type: textarea
+    id: what-comparing
+    attributes:
+      label: What were you trying to compare?
+      description: Describe the folders or files you were inspecting (e.g., "phone backup and desktop archive", "duplicated downloads folder").
+      placeholder: |
+        Example: I compared my phone's photo export folder against my main archive on an external drive.
+    validations:
+      required: true
+      
+  - type: textarea
+    id: expectation-match
+    attributes:
+      label: Did Ditto's result match your expectation?
+      description: Were you surprised by what was grouped as exact copies, or by what wasn't?
+      placeholder: |
+        Example: I expected two photos to match, but they didn't because one was edited. That makes sense now.
+    validations:
+      required: true
+      
+  - type: textarea
+    id: confusing-untrustworthy
+    attributes:
+      label: Was anything confusing or untrustworthy?
+      description: Did any part of the interface, results, or documentation cause confusion or reduce confidence?
+      placeholder: |
+        Example: I wasn't sure if "extra copies" meant I should delete them. The FAQ cleared that up.
+    validations:
+      required: false
+      
+  - type: textarea
+    id: next-action
+    attributes:
+      label: What did you want to do immediately afterward?
+      description: After viewing results, what was your next impulse? (e.g., open a file, delete something, export a list, check another folder)
+      placeholder: |
+        Example: I wanted to open the file location to verify it was actually there.
+    validations:
+      required: false
+      
+  - type: textarea
+    id: error-unsupported
+    attributes:
+      label: Did you encounter an error or unsupported situation?
+      description: Include any error messages, browser console output, or file/folder scenarios that didn't work.
+      placeholder: |
+        Example: Got "Could not read file" for .HEIC images on Windows/Chrome.
+    validations:
+      required: false
+      
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Anything else that would help understand your experience.
+      placeholder: |
+        Browser, operating system, approximate number of files compared, or other relevant details.
+    validations:
+      required: false
